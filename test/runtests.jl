@@ -1,6 +1,21 @@
 using MRSI
 using Test
+using TestItemRunner
 
-@testset "MRSI.jl" begin
-    # Write your tests here.
+@run_package_tests
+
+include("read_headers.jl")
+
+@testitem "MRSI.jl" begin
+    f_old16 = "C:/ICE/virtualShare/mrsi/dats/dats1/meas_MID00175_FID80315_csi_fidesi_crt_OldADC_Test8_16x16.dat"
+    channels = 1
+    headers = read_data_headers(f_old16, channels)
+
+
+    h = headers[:ONLINE][1]
+    slice = open(f_old16) do io
+        read_slice(io, h, 1)
+    end
+    rearrange(slice[1], h[1], 1)
+    @test 1 == 1
 end
