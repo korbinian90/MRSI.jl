@@ -1,4 +1,6 @@
-function read_data_headers(filename, channels;)
+const GYRO_MAGNETIC_RATIO_OVER_TWO_PI = 42.57747892; # value taken from MATLAB script read_ascconv.m
+
+function read_data_headers(filename)
     if !checkVD(filename)
         error("only VD implemented")
     end
@@ -67,7 +69,7 @@ function rearrange_headers(scan_headers)
     return headers_rearranged
 end
 
-function calculate_additional_data(circle_headers, n_channels)
+function calculate_additional_data(circle_headers)
     s = Dict{Symbol,Int}()
     s[:adc_points] = maximum(h.dims[COL] for h in circle_headers)
     s[:adcs] = maximum(h.dims[IDA] for h in circle_headers)
@@ -81,7 +83,6 @@ function calculate_additional_data(circle_headers, n_channels)
 
     s[:n_fid] = round(Int, s[:adc_points] * s[:adcs] / s[:points_on_circle] * s[:temporal_interleaves] - 0.5)
     s[:useful_adc_points] = (s[:n_fid] * s[:points_on_circle]) ÷ s[:temporal_interleaves]
-    s[:n_channels] = n_channels
     return s
 end
 
@@ -133,6 +134,38 @@ function read_circle(io, headers, n_channels)
         output[I, :, :] .= read_adc(io, headers[I].data_position, n_channels)
     end
     return output
+end
+
+function kspace_coordinates(slice_headers, n_grid, fov_read)
+    coordinates = Complex[]
+    for (i_circle, headers) in enumerate(slice_headers)
+        s = calculate_additional_data(headers)
+        points_on_circle = s[:points_on_circle]
+        angle_increment = 2pi / points_on_circle
+        xy = read_kspace_coordinate(headers[1])
+        r = radius_normalized(xy, n_grid, fov_read)
+        angle_first_point = angle(xy) - pi / 2
+        for i_phi in 0:(points_on_circle-1)
+            phi = angle_first_point - i_phi * angle_increment
+            push!(coordinates, r * exp(im * phi))
+        end
+
+    end
+    return coordinates
+end
+
+function read_kspace_coordinate(head::ScanHeaderVD)
+    x = parse_to_float(head.ice_param[1], head.ice_param[2])
+    y = parse_to_float(head.ice_param[3], head.ice_param[4])
+    return ComplexF32(x, y)
+end
+parse_to_float(a::Int16, b::Int16) = a + b / 10_000
+
+function radius_normalized(xy, n_grid, fov_read)
+    r = abs(xy)
+    delta_gm = 1e6 / (fov_read * GYRO_MAGNETIC_RATIO_OVER_TWO_PI)
+    maxR = delta_gm * n_grid / 2
+    return r / (2maxR)
 end
 
 #
