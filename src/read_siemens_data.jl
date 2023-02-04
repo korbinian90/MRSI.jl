@@ -54,12 +54,12 @@ function rearrange_headers(scan_headers)
                 part_encodings = length(unique(h.dims[SEG] for h in circle_headers))
                 adcs = maximum(h.dims[IDA] for h in circle_headers)
 
-                scan_headers_reshaped = Array{ScanHeaderVD}(undef, temporal_interleaves, part_encodings, adcs)
+                scan_headers_reshaped = Array{ScanHeaderVD}(undef, adcs, temporal_interleaves, part_encodings)
                 for head in circle_headers
                     TI = head.dims[IDB]
                     part = head.dims[SEG]
                     adc = head.dims[IDA]
-                    scan_headers_reshaped[TI, part, adc] = head
+                    scan_headers_reshaped[adc, TI, part] = head
                 end
 
                 headers_rearranged[type][slice][circle] = scan_headers_reshaped
@@ -128,36 +128,47 @@ end
 
 function read_circle(io, headers, n_channels)
     points_per_adc = headers[1].dims[COL]
-    output = zeros(ComplexF32, size(headers)..., points_per_adc, n_channels)
+    output = zeros(ComplexF32, points_per_adc, size(headers)..., n_channels)
     for I in CartesianIndices(headers)
-        seek(io, 5)
-        output[I, :, :] .= read_adc(io, headers[I].data_position, n_channels)
+        seek(io, 5) # skip the first 5 elements
+        output[:, I, :] .= read_adc(io, headers[I].data_position, n_channels) # dims: (adc_points, adc_line, TI, part, channels)
     end
     return output
 end
 
 function kspace_coordinates(slice_headers, n_grid, fov_read)
-    coordinates = Complex[]
-    for (i_circle, headers) in enumerate(slice_headers)
-        s = calculate_additional_data(headers)
-        points_on_circle = s[:points_on_circle]
-        angle_increment = 2pi / points_on_circle
-        xy = read_kspace_coordinate(headers[1])
-        r = radius_normalized(xy, n_grid, fov_read)
-        angle_first_point = angle(xy) - pi / 2
-        for i_phi in 0:(points_on_circle-1)
-            phi = angle_first_point - i_phi * angle_increment
-            push!(coordinates, r * exp(im * phi))
-        end
+    coords = read_kspace_coordinates(slice_headers)
+    return normalize_kspace(coords, n_grid, fov_read)
+end
 
+function read_kspace_coordinates(slice_headers)
+    coordinates = Complex[]
+    for circle_headers in slice_headers
+        s = calculate_additional_data(circle_headers)
+        xy = read_kspace_coordinate(circle_headers[1])
+        coords = construct_coordinates_circle(xy, s[:points_on_circle])
+        append!(coordinates, coords)
     end
     return coordinates
+end
+
+function construct_coordinates_circle(xy, points_on_circle)
+    angle_increment = 2pi / points_on_circle
+    r = abs(xy)
+    angle_first_point = angle(xy) - pi / 2
+    phi = angle_first_point .- (0:points_on_circle-1) * angle_increment
+    coords = r .* exp.(im .* phi)
+    return coords
+end
+
+function normalize_kspace(coordinates, n_grid, fov_read)
+    return coordinates ./ 2max_r(n_grid, fov_read)
 end
 
 function read_kspace_coordinate(head::ScanHeaderVD)
     x = parse_to_float(head.ice_param[1], head.ice_param[2])
     y = parse_to_float(head.ice_param[3], head.ice_param[4])
-    return ComplexF32(x, y)
+    return Complex(x, y)
 end
 parse_to_float(a::Int16, b::Int16) = a + b / 10_000
 
@@ -168,6 +179,11 @@ function radius_normalized(xy, n_grid, fov_read)
     return r / (2maxR)
 end
 
+function max_r(n_grid, fov_read)
+    delta_gm = 1e6 / (fov_read * GYRO_MAGNETIC_RATIO_OVER_TWO_PI)
+    max_r = delta_gm * n_grid / 2
+    return max_r
+end
 #
 
 

@@ -12,5 +12,5 @@ using TestItemRunner
     @show size(re)
 
     re = rearrange(slice, h, 1)
-    @test size(re) == (960, 1, 840, 1) # (points_per_slice, par, n_fid, n_channels)
+    @test size(re) == (960, 840, 1, 1) # (points_per_slice, par, n_fid, n_channels)
 end

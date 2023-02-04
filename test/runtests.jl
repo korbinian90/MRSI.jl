@@ -36,5 +36,5 @@ end
 
     kspace_points = MRSI.kspace_coordinates(h, n_grid, fov_read)
     ft = fourier_transform(ordered_kspace, kspace_points, n_grid)
-    @test size(ft) == (16, 16, 1, 840, 1) # (n_grid, n_grid, part, n_fid, n_channels)
+    @test size(ft) == (16, 16, 1, 840, 1, 1) # (n_grid, n_grid, slice, n_fid, part, n_channels)
 end

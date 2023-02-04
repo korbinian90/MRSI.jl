@@ -3,28 +3,27 @@ function rearrange(slice_data, headers, n_channels)
 end
 
 function rearrange_circle(circle_data, headers, n_channels)
+    # dims: (adc_points, adc_line, part, TI, channels)
     s = calculate_additional_data(headers)
     s[:n_channels] = n_channels
-    # @show size(circle_data)
-    permuted1 = permute_adc_line_after_adc_points(circle_data, s)
-    # @show size(permuted1)
-    # @show s
-    cut = cut_unused_adc_points(permuted1, s)
-    # @show size(cut)
+    @show size(circle_data)
+    adc_merged = merge_adc_lines(circle_data, s)
+    @show size(adc_merged)
+    @show s
+    cut = cut_unused_adc_points(adc_merged, s)
+    @show size(cut)
     circle = reshape_into_circles(cut, s)
-    # @show size(circle)
-    permuted2 = permutedims(circle, (3, 2, 1, 4, 5))
-    # @show size(permuted2)
-    merged = merge_temporal_interleaves(circle, s)
-    # @show size(merged)
-    return merged
+    @show size(circle)
+    ordered = merge_temporal_interleaves(circle, s)
+    @show size(ordered)
+    return ordered
 end
 
-function permute_adc_line_after_adc_points(data, s)
-    data = permutedims(data, (1, 2, 4, 3, 5))
-    data = reshape(data, s[:temporal_interleaves], s[:part], s[:adc_points] * s[:adcs], s[:n_channels])
+merge_adc_lines(data, s) = reshape(data, s[:adc_points] * s[:adcs], s[:temporal_interleaves], s[:part], s[:n_channels])
+cut_unused_adc_points(data, s) = data[1:s[:useful_adc_points], :, :, :]
+reshape_into_circles(data, s) = reshape(data, s[:points_on_circle], s[:n_fid] ÷ s[:temporal_interleaves], s[:temporal_interleaves], s[:part], s[:n_channels])
+function merge_temporal_interleaves(data, s)
+    data = permutedims(data, (1, 3, 2, 4, 5))
+    data = reshape(data, s[:points_on_circle], s[:n_fid], s[:part], s[:n_channels])
     return data
 end
-cut_unused_adc_points(circle, s) = circle[:, :, 1:s[:useful_adc_points], :]
-reshape_into_circles(circle, s) = reshape(circle, s[:temporal_interleaves], s[:part], s[:points_on_circle], s[:n_fid] ÷ s[:temporal_interleaves], s[:n_channels])
-merge_temporal_interleaves(circle, s) = reshape(circle, s[:points_on_circle], s[:part], s[:n_fid], s[:n_channels])
