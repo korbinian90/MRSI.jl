@@ -3,7 +3,7 @@ function rearrange(slice_data, scaninfo)
 end
 
 function rearrange_circle(circle_data, scaninfo)
-    n_channels = read_n_channels(scaninfo)
+    n_channels = scaninfo.twix[:n_channels]
     # dims: (adc_points, adc_line, part, TI, channels)
     s = calculate_additional_data(scaninfo)
     s[:n_channels] = n_channels

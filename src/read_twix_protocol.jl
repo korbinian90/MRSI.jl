@@ -1,3 +1,14 @@
+function extract_twix(twix)
+    return Dict(
+        :oversampling_factor => twix["Dicom"]["flReadoutOSFactor"],
+        :fov_readout => twix["MeasYaps"]["sSpecPara"]["sVoI"]["dReadoutFOV"],
+        :n_channels => twix["MeasYaps"]["sCoilSelectMeas"]["aRxCoilSelectData"][1]["asList"][1]["lRxChannelConnected"],
+        :n_part => twix["MeasYaps"]["sKSpace"]["lPartitions"],
+        :n_frequency => twix["MeasYaps"]["sKSpace"]["lBaseResolution"],
+        :n_phase_encoding => twix["MeasYaps"]["sKSpace"]["lPhaseEncodingLines"],
+    )
+end
+
 ## Adapted from Philipp Ehses read_twix_hdr.m
 function read_twix_protocol(filename; scan=1)
     protocol = Dict()
@@ -7,7 +18,7 @@ function read_twix_protocol(filename; scan=1)
         seek(io, offset + 4)
 
         n_entries = 1 * read(io, UInt32)
-        for i in 1:n_entries
+        for _ in 1:n_entries
             name = join([read(io, Char) for _ in 1:10])
             name = parse_entry_name(name)
             seek(io, position(io) + length(name) - 9)

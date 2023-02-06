@@ -22,7 +22,7 @@ end
 @testitem "Fourier Transform" begin
     f_old16 = "C:/ICE/virtualShare/mrsi/dats/dats1/meas_MID00175_FID80315_csi_fidesi_crt_OldADC_Test8_16x16.dat"
     scaninfo = ScanInfo(f_old16, :ONLINE)
-    n_grid = MRSI.read_n_grid(scaninfo)
+    n_grid = scaninfo.twix[:n_frequency]
 
     sliceinfo = first(scaninfo)
     slice = open(f_old16) do io

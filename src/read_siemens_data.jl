@@ -1,11 +1,12 @@
 const GYRO_MAGNETIC_RATIO_OVER_TWO_PI = 42.57747892; # value taken from MATLAB script read_ascconv.m
 
-function read_data_headers(filename, n_channels)
+function read_rearrange_data_headers(filename, type, n_channels, n_part, max_n_circles)
     if !checkVD(filename)
         error("only VD implemented")
     end
     headers = read_scan_headers(filename, n_channels)
-    return rearrange_headers(headers)
+    headers = headers[type]
+    return rearrange_headers(headers, n_part, max_n_circles)
 end
 
 function read_scan_headers(filename, n_channels; scan=1)  # only with one scan implemented for now
@@ -38,36 +39,53 @@ function read_scan_headers(filename, n_channels; scan=1)  # only with one scan i
     return scan_headers
 end
 
-function rearrange_headers(scan_headers)
-    headers_rearranged = Dict()
-    for (type, headers) in scan_headers
-        slices = unique(h.dims[SLI] for h in headers)
-        headers_rearranged[type] = Array{Any}(undef, maximum(slices))
-        for slice in slices
-            slice_headers = [h for h in headers if h.dims[SLI] == slice]
-            circles = unique(h.dims[LIN] for h in slice_headers)
+function rearrange_headers(headers, n_part, max_n_circles)
+    slices = unique(h.dims[SLI] for h in headers)
+    headers_rearranged = Array{Any}(undef, maximum(slices), n_part)
+    for slice in slices
+        slice_headers = [h for h in headers if h.dims[SLI] == slice]
+        circles = unique(h.dims[LIN] for h in slice_headers)
 
-            headers_rearranged[type][slice] = Array{Any}(undef, maximum(circles))
-            for circle in circles
-                circle_headers = [h for h in headers if h.dims[LIN] == circle]
+        (part_order, circle_order, circles_per_part) = calculate_part_order(n_part, max_n_circles)
+        for (i, n) in enumerate(circles_per_part)
+            headers_rearranged[slice, i] = Array{Any}(undef, n)
+        end
 
-                temporal_interleaves = maximum(h.dims[IDB] for h in circle_headers)
-                part_encodings = length(unique(h.dims[SEG] for h in circle_headers))
-                adcs = maximum(h.dims[IDA] for h in circle_headers)
+        for circle in circles
+            circle_headers = [h for h in headers if h.dims[LIN] == circle]
 
-                scan_headers_reshaped = Array{ScanHeaderVD}(undef, adcs, temporal_interleaves, part_encodings)
-                for head in circle_headers
-                    TI = head.dims[IDB]
-                    part = head.dims[SEG]
-                    adc = head.dims[IDA]
-                    scan_headers_reshaped[adc, TI, part] = head
-                end
+            temporal_interleaves = maximum(h.dims[IDB] for h in circle_headers)
+            adcs = maximum(h.dims[IDA] for h in circle_headers)
 
-                headers_rearranged[type][slice][circle] = scan_headers_reshaped
+            scan_headers_reshaped = Array{ScanHeaderVD}(undef, adcs, temporal_interleaves)
+            for head in circle_headers
+                TI = head.dims[IDB]
+                adc = head.dims[IDA]
+                scan_headers_reshaped[adc, TI] = head
             end
+
+            circle_in_part = circle_order[circle]
+            part = part_order[circle]
+
+            headers_rearranged[slice, part][circle_in_part] = scan_headers_reshaped
         end
     end
     return headers_rearranged
+end
+
+function calculate_n_circles_per_part(part_max, max_n_circles, i)
+    if part_max == 0 # 2D
+        return max_n_circles
+    end
+    return max(2, Int(ceil(sqrt(max_n_circles^2 - (i * max_n_circles / part_max)^2))))
+end
+
+function calculate_part_order(n_part, max_n_circles)
+    part_max = n_part ÷ 2
+    circles_per_part = [calculate_n_circles_per_part(part_max, max_n_circles, i) for i in -part_max:part_max]
+    part_order = vcat((repeat([i], n) for (i, n) in enumerate(circles_per_part))...)
+    circle_order = vcat((1:c for c in circles_per_part)...)
+    return (part_order, circle_order, circles_per_part)
 end
 
 function calculate_additional_data(scaninfo)
@@ -80,7 +98,7 @@ function calculate_additional_data(scaninfo)
     if s[:points_on_circle] == 0
         s[:points_on_circle] = maximum(h.dims[IDC] - 1 for h in scaninfo)
     end
-    s[:points_on_circle] *= read_oversampling_factor(scaninfo)
+    s[:points_on_circle] *= scaninfo.twix[:oversampling_factor]
 
     s[:temporal_interleaves] = maximum(h.dims[IDB] for h in scaninfo)
 
@@ -129,8 +147,8 @@ function read_slice(io, scaninfo)
 end
 
 function read_circle(io, scaninfo)
-    headers = scaninfo.scan_headers
-    n_channels = read_n_channels(scaninfo)
+    headers = scaninfo.headers
+    n_channels = scaninfo.twix[:n_channels]
     points_per_adc = headers[1].dims[COL]
 
     output = zeros(ComplexF32, points_per_adc, size(headers)..., n_channels)
@@ -142,8 +160,8 @@ function read_circle(io, scaninfo)
 end
 
 function kspace_coordinates(sliceinfo)
-    n_grid = read_n_grid(sliceinfo)
-    fov_read = read_fov_readout(sliceinfo)
+    n_grid = sliceinfo.twix[:n_frequency]
+    fov_read = sliceinfo.twix[:fov_readout]
     coords = read_kspace_coordinates(sliceinfo)
     return normalize_kspace(coords, n_grid, fov_read)
 end

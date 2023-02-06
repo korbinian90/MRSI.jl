@@ -1,30 +1,33 @@
 @enum DIM COL = 1 LIN = 3 AVE = 4 SLI = 5 PAR = 6 ECO = 7 PHS = 8 REP = 9 SET = 10 SEG = 11 IDA = 12 IDB = 13 IDC = 14 IDD = 15 IDE = 16
 Base.to_index(d::DIM) = Int(d)
 
-# Define ScanInfo type that iterates over scan_headers [slice][circle]
+# Define ScanInfo type that iterates over headers [slice][circle]
 struct ScanInfo
-    scan_headers::AbstractArray
-    twix_header::Dict
+    headers::AbstractArray
+    twix::Dict
 end
 function ScanInfo(f::AbstractString, type::Symbol)
-    twix = read_twix_protocol(f)
-    n_channels = read_n_channels(twix)
-    ScanInfo(read_data_headers(f, n_channels)[type], twix)
+    twix = extract_twix(read_twix_protocol(f))
+    n_channels = twix[:n_channels]
+    n_part = twix[:n_part]
+    n_grid = twix[:n_frequency]
+    max_n_circles = n_grid ÷ 2
+    ScanInfo(read_rearrange_data_headers(f, type, n_channels, n_part, max_n_circles), twix)
 end
 function Base.getindex(s::ScanInfo, i)
-    if s.scan_headers[i] isa ScanHeaderVD
-        return s.scan_headers[i]
+    if s.headers[i] isa ScanHeaderVD
+        return s.headers[i]
     end
-    return ScanInfo(s.scan_headers[i], s.twix_header)
+    return ScanInfo(s.headers[i], s.twix)
 end
 function Base.iterate(s::ScanInfo, state=1)
-    if state > length(s.scan_headers)
+    if state > length(s.headers)
         return nothing
     end
     return (s[state], state + 1)
 end
-Base.length(s::ScanInfo) = length(s.scan_headers)
-Base.size(s::ScanInfo, dim...) = size(s.scan_headers, dim...)
+Base.length(s::ScanInfo) = length(s.headers)
+Base.size(s::ScanInfo, dim...) = size(s.headers, dim...)
 
 struct HeaderInfo
     n_scans
