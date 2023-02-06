@@ -5,13 +5,13 @@ function reconstruct(filename, type=:ONLINE)
 end
 
 function reconstruct_slice(filename, scaninfo)
-    n_grid = scaninfo.twix[:n_frequency]
-
     slice = open(filename) do io
         read_slice(io, scaninfo)
     end
-
     kspace_data = rearrange(slice, scaninfo)
+
+    n_grid = scaninfo.twix[:n_frequency]
     kspace_points = MRSI.kspace_coordinates(scaninfo)
+
     return fourier_transform(kspace_data, kspace_points, n_grid)
 end

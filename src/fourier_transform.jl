@@ -12,7 +12,7 @@ function calculate_dft_matrix(kspace_coordinates, n_grid)
     rx = ry = -r_range:r_range
     ry = reshape(ry, 1, :)
     ks = reshape(kspace_coordinates, 1, 1, :)
-    angle = -2pi * (rx .* real.(ks) .+ ry .* imag.(ks))
-    dft_matrix = exp.(im .* angle)
+    f(rx, ry, k) = exp(im * -2pi * (rx * real(k) + ry * imag(k)))
+    dft_matrix = f.(rx, ry, ks) # size: (n_grid, n_grid, n_kspace)
     return reshape(dft_matrix, n_grid * n_grid, :)
 end

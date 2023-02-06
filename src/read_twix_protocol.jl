@@ -2,7 +2,7 @@ function extract_twix(twix)
     return Dict(
         :oversampling_factor => twix["Dicom"]["flReadoutOSFactor"],
         :fov_readout => twix["MeasYaps"]["sSpecPara"]["sVoI"]["dReadoutFOV"],
-        :n_channels => twix["MeasYaps"]["sCoilSelectMeas"]["aRxCoilSelectData"][1]["asList"][1]["lRxChannelConnected"],
+        :n_channels => length(map(coil -> coil["lRxChannelConnected"], twix["MeasYaps"]["sCoilSelectMeas"]["aRxCoilSelectData"][1]["asList"])),
         :n_part => twix["MeasYaps"]["sKSpace"]["lPartitions"],
         :n_frequency => twix["MeasYaps"]["sKSpace"]["lBaseResolution"],
         :n_phase_encoding => twix["MeasYaps"]["sKSpace"]["lPhaseEncodingLines"],

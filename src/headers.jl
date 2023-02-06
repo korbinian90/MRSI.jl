@@ -68,7 +68,6 @@ function Base.read(io::IO, ::Type{ScanHeaderVD})
     channel_mdh_offset_64 = 4
     ice_param_offset = 48 + (48 - 8) * 2
 
-
     seek(io, position(io) + mask_offset)
     mask_bytes = zeros(UInt8, 8)
     read!(io, mask_bytes)
@@ -87,9 +86,4 @@ function Base.read(io::IO, ::Type{ScanHeaderVD})
     adc_length = dims[COL] + channel_mdh_offset_64
 
     ScanHeaderVD(mask, scan_info(mask), dims, ice_param, (data_start, adc_length))
-end
-
-struct Adc
-    start::Int
-    length::Int
 end
