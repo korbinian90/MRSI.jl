@@ -1,5 +1,7 @@
 module MRSI
 
+using FFTW, MriResearchTools
+
 include("headers.jl")
 include("read_headers.jl")
 include("rearrange_headers.jl")

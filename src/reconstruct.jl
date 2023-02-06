@@ -1,6 +1,15 @@
 function reconstruct(filename, type=:ONLINE)
     scaninfo = ScanInfo(filename, type)
-    image = cat((reconstruct_slice(filename, si) for si in scaninfo)...; dims=3)
+
+    info = MRSI.calculate_additional_info(first(first(scaninfo)))
+
+    sz = (scaninfo.twix[:n_frequency], scaninfo.twix[:n_frequency], prod(size(scaninfo)), info[:n_fid], scaninfo.twix[:n_channels])
+    image = write_emptynii(sz, tempname(); datatype=ComplexF32)
+
+    for (i, si) in enumerate(scaninfo)
+        image.raw[:, :, i, :, :] .= MRSI.reconstruct_slice(filename, si)
+    end
+
     return image
 end
 

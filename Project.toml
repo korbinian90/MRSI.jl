@@ -3,5 +3,9 @@ uuid = "b8bc1fa0-d22f-41bb-a8bc-234403704bc7"
 authors = ["Korbinian Eckstein korbinian90@gmail.com"]
 version = "0.1.0"
 
+[deps]
+FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
+MriResearchTools = "557dad86-b9bd-4533-8525-1a39684d020f"
+
 [compat]
 julia = "1.6"

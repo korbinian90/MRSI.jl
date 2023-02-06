@@ -3,7 +3,7 @@ function fourier_transform(slice, kspace_coordinates, n_grid)
     slice_matrix = reshape(slice, length(kspace_coordinates), :)
     dft_matrix = calculate_dft_matrix(kspace_coordinates, n_grid)
     image_matrix = dft_matrix * slice_matrix
-    image = reshape(image_matrix, n_grid, n_grid, 1, size(slice)[2:end]...) # one slice
+    image = reshape(image_matrix, n_grid, n_grid, size(slice)[2:end]...) # one slice
     return image
 end
 
@@ -15,4 +15,8 @@ function calculate_dft_matrix(kspace_coordinates, n_grid)
     f(rx, ry, k) = exp(im * -2pi * (rx * real(k) + ry * imag(k)))
     dft_matrix = f.(rx, ry, ks) # size: (n_grid, n_grid, n_kspace)
     return reshape(dft_matrix, n_grid * n_grid, :)
+end
+
+function fft_partitions()
+
 end
