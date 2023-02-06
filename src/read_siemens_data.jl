@@ -69,17 +69,19 @@ function rearrange_headers(scan_headers)
     return headers_rearranged
 end
 
-function calculate_additional_data(circle_headers)
+function calculate_additional_data(scaninfo)
     s = Dict{Symbol,Int}()
-    s[:adc_points] = maximum(h.dims[COL] for h in circle_headers)
-    s[:adcs] = maximum(h.dims[IDA] for h in circle_headers)
-    s[:part] = length(unique(h.dims[SEG] for h in circle_headers))
+    s[:adc_points] = maximum(h.dims[COL] for h in scaninfo)
+    s[:adcs] = maximum(h.dims[IDA] for h in scaninfo)
+    s[:part] = length(unique(h.dims[SEG] for h in scaninfo))
 
-    s[:points_on_circle] = maximum(h.ice_param[6] for h in circle_headers)
+    s[:points_on_circle] = maximum(h.ice_param[6] for h in scaninfo)
     if s[:points_on_circle] == 0
-        s[:points_on_circle] = maximum(h.dims[IDC] - 1 for h in circle_headers)
+        s[:points_on_circle] = maximum(h.dims[IDC] - 1 for h in scaninfo)
     end
-    s[:temporal_interleaves] = maximum(h.dims[IDB] for h in circle_headers)
+    s[:points_on_circle] *= read_oversampling_factor(scaninfo)
+
+    s[:temporal_interleaves] = maximum(h.dims[IDB] for h in scaninfo)
 
     s[:n_fid] = round(Int, s[:adc_points] * s[:adcs] / s[:points_on_circle] * s[:temporal_interleaves] - 0.5)
     s[:useful_adc_points] = (s[:n_fid] * s[:points_on_circle]) ÷ s[:temporal_interleaves]
@@ -122,12 +124,15 @@ function read_adc(io::IO, (start, bytes), channels)
     return view(adc, 5:data_length, :)
 end
 
-function read_slice(io, headers, n_channels)
-    return [read_circle(io, h, n_channels) for h in headers]
+function read_slice(io, scaninfo)
+    return [read_circle(io, si) for si in scaninfo]
 end
 
-function read_circle(io, headers, n_channels)
+function read_circle(io, scaninfo)
+    headers = scaninfo.scan_headers
+    n_channels = read_n_channels(scaninfo)
     points_per_adc = headers[1].dims[COL]
+
     output = zeros(ComplexF32, points_per_adc, size(headers)..., n_channels)
     for I in CartesianIndices(headers)
         seek(io, 5) # skip the first 5 elements
@@ -136,8 +141,10 @@ function read_circle(io, headers, n_channels)
     return output
 end
 
-function kspace_coordinates(slice_headers, n_grid, fov_read)
-    coords = read_kspace_coordinates(slice_headers)
+function kspace_coordinates(sliceinfo)
+    n_grid = read_n_grid(sliceinfo)
+    fov_read = read_fov_readout(sliceinfo)
+    coords = read_kspace_coordinates(sliceinfo)
     return normalize_kspace(coords, n_grid, fov_read)
 end
 
@@ -184,31 +191,3 @@ function max_r(n_grid, fov_read)
     max_r = delta_gm * n_grid / 2
     return max_r
 end
-#
-
-
-
-
-
-## Adapted from Philipp Ehses read_twix_hdr.m
-function read_twix_protocol(filename, start)
-    protocol = Dict()
-    open(filename) do io
-        seek(io, start)
-        n_entries = read(io, UInt32)
-        for i in 1:n_entries
-            chars = [read(io, Char) for _ in 1:10]
-            name = parse_entry_name(chars)
-            seek(io, position(io) + length(name) - 9)
-            len = read(io, UInt32)
-            buffer = [read(io, Char) for _ in 1:len]
-            # TODO
-        end
-    end
-end
-
-function parse_entry_name(chars)
-    return match(r"^\w*", join(chars)).match
-end
-
-# n = read_twix_protocol(f, p)

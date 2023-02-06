@@ -1,10 +1,11 @@
-function rearrange(slice_data, headers, n_channels)
-    return vcat((rearrange_circle(slice_data[i], headers[i], n_channels) for i in eachindex(slice_data))...)
+function rearrange(slice_data, scaninfo)
+    return vcat((rearrange_circle(slice_data[i], scaninfo[i]) for i in eachindex(slice_data))...)
 end
 
-function rearrange_circle(circle_data, headers, n_channels)
+function rearrange_circle(circle_data, scaninfo)
+    n_channels = read_n_channels(scaninfo)
     # dims: (adc_points, adc_line, part, TI, channels)
-    s = calculate_additional_data(headers)
+    s = calculate_additional_data(scaninfo)
     s[:n_channels] = n_channels
     @show size(circle_data)
     adc_merged = merge_adc_lines(circle_data, s)

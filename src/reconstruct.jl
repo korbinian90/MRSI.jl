@@ -1,17 +1,27 @@
-function reconstruct(filename; n_channels=1, fov_read)
-    headers = read_data_headers(filename)
-    n_grid = 2 * length(headers[:ONLINE][1])
+read_oversampling_factor(s::ScanInfo) = s.twix_header["Dicom"]["flReadoutOSFactor"]
+read_fov_readout(s::ScanInfo) = s.twix_header["MeasYaps"]["sSpecPara"]["sVoI"]["dReadoutFOV"]
+read_n_channels(s::ScanInfo) = s.twix_header["MeasYaps"]["sCoilSelectMeas"]["aRxCoilSelectData"][1]["asList"][1]["lRxChannelConnected"]
+function read_n_grid(s::ScanInfo)
+    n_frequency = s.twix_header["MeasYaps"]["sKSpace"]["lBaseResolution"]
+    n_phase_encoding = s.twix_header["MeasYaps"]["sKSpace"]["lPhaseEncodingLines"]
+    @assert n_frequency == n_phase_encoding
+    return n_frequency
+end
 
-    image = cat((reconstruct_slice(filename, h, n_channels, n_grid, fov_read) for h in headers[:ONLINE])...; dims=3)
+function reconstruct(filename)
+    scaninfo = ScanInfo(filename, :ONLINE)
+    image = cat((reconstruct_slice(filename, si) for si in scaninfo)...; dims=3)
     return image
 end
 
-function reconstruct_slice(filename, headers, n_channels, n_grid, fov_read)
+function reconstruct_slice(filename, scaninfo)
+    n_grid = read_n_grid(scaninfo)
+
     slice = open(filename) do io
-        read_slice(io, headers, n_channels)
+        read_slice(io, scaninfo)
     end
 
-    kspace_data = rearrange(slice, headers, n_channels)
-    kspace_points = MRSI.kspace_coordinates(headers, n_grid, fov_read)
+    kspace_data = rearrange(slice, scaninfo)
+    kspace_points = MRSI.kspace_coordinates(scaninfo)
     return fourier_transform(kspace_data, kspace_points, n_grid)
 end
