@@ -96,7 +96,7 @@ function parse_ascconv!(prot, buffer)
         v = eachmatch(r"(?<array_name>\w+)\[(?<ix>[0-9]+)\]|(?<name>\w+)", m["name"])
 
         valid = true
-        great_parent = nothing
+        great_parent = prot
         access = ""
         parent = prot
         for vk in v
