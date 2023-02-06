@@ -1,14 +1,14 @@
 const GYRO_MAGNETIC_RATIO_OVER_TWO_PI = 42.57747892; # value taken from MATLAB script read_ascconv.m
 
-function read_data_headers(filename)
+function read_data_headers(filename, n_channels)
     if !checkVD(filename)
         error("only VD implemented")
     end
-    headers = read_scan_headers(filename)
+    headers = read_scan_headers(filename, n_channels)
     return rearrange_headers(headers)
 end
 
-function read_scan_headers(filename; scan=1)  # only with one scan implemented for now
+function read_scan_headers(filename, n_channels; scan=1)  # only with one scan implemented for now
     scan_headers = Dict()
     open(filename) do io
         file_header = read(io, HeaderInfo)
@@ -25,12 +25,13 @@ function read_scan_headers(filename; scan=1)  # only with one scan implemented f
                 break
             end
 
-            start, n_bytes = scan.data_position
+            start, n_adc = scan.data_position
             if haskey(scan_headers, scan.type)
                 push!(scan_headers[scan.type], scan)
             else
                 scan_headers[scan.type] = [scan]
             end
+            n_bytes = n_adc * n_channels * 8
             seek(io, start + n_bytes)
         end
     end
@@ -116,12 +117,11 @@ function scan_info(mask)
     return :OTHER
 end
 
-function read_adc(io::IO, (start, bytes), channels)
-    data_length = bytes ÷ 8
-    adc = zeros(ComplexF32, data_length, channels)
+function read_adc(io::IO, (start, adc_length), channels)
+    adc = zeros(ComplexF32, adc_length, channels)
     seek(io, start)
     read!(io, adc)
-    return view(adc, 5:data_length, :)
+    return view(adc, 5:adc_length, :)
 end
 
 function read_slice(io, scaninfo)

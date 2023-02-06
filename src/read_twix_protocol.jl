@@ -9,7 +9,7 @@ function read_twix_protocol(filename; scan=1)
         n_entries = 1 * read(io, UInt32)
         for i in 1:n_entries
             name = join([read(io, Char) for _ in 1:10])
-            @show name = parse_entry_name(name)
+            name = parse_entry_name(name)
             seek(io, position(io) + length(name) - 9)
             len = read(io, UInt32)
 
@@ -81,9 +81,6 @@ end
 
 function parse_ascconv!(prot, buffer)
     for m in eachmatch(r"(?<name>\S*)\s*=\s*(?<value>\S*)", buffer)
-        if contains(m["name"], "Channel")
-            @show m
-        end
         value = parse_value(m["value"])
         v = eachmatch(r"(?<array_name>\w+)\[(?<ix>[0-9]+)\]|(?<name>\w+)", m["name"])
 
@@ -93,7 +90,6 @@ function parse_ascconv!(prot, buffer)
         parent = prot
         for vk in v
             if length(vk.match) < 1
-                @show vk v
                 valid = false
                 break
             end

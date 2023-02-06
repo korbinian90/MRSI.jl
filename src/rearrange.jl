@@ -7,16 +7,16 @@ function rearrange_circle(circle_data, scaninfo)
     # dims: (adc_points, adc_line, part, TI, channels)
     s = calculate_additional_data(scaninfo)
     s[:n_channels] = n_channels
-    @show size(circle_data)
+    # @show size(circle_data)
     adc_merged = merge_adc_lines(circle_data, s)
-    @show size(adc_merged)
-    @show s
+    # @show size(adc_merged)
+    # @show s
     cut = cut_unused_adc_points(adc_merged, s)
-    @show size(cut)
+    # @show size(cut)
     circle = reshape_into_circles(cut, s)
-    @show size(circle)
+    # @show size(circle)
     ordered = merge_temporal_interleaves(circle, s)
-    @show size(ordered)
+    # @show size(ordered)
     return ordered
 end
 

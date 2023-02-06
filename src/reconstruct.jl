@@ -1,6 +1,7 @@
 read_oversampling_factor(s::ScanInfo) = s.twix_header["Dicom"]["flReadoutOSFactor"]
 read_fov_readout(s::ScanInfo) = s.twix_header["MeasYaps"]["sSpecPara"]["sVoI"]["dReadoutFOV"]
-read_n_channels(s::ScanInfo) = s.twix_header["MeasYaps"]["sCoilSelectMeas"]["aRxCoilSelectData"][1]["asList"][1]["lRxChannelConnected"]
+read_n_channels(s::ScanInfo) = read_n_channels(s.twix_header)
+read_n_channels(twix) = twix["MeasYaps"]["sCoilSelectMeas"]["aRxCoilSelectData"][1]["asList"][1]["lRxChannelConnected"]
 function read_n_grid(s::ScanInfo)
     n_frequency = s.twix_header["MeasYaps"]["sKSpace"]["lBaseResolution"]
     n_phase_encoding = s.twix_header["MeasYaps"]["sKSpace"]["lPhaseEncodingLines"]

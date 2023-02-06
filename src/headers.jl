@@ -6,7 +6,11 @@ struct ScanInfo
     scan_headers::AbstractArray
     twix_header::Dict
 end
-ScanInfo(f::AbstractString, type::Symbol) = ScanInfo(read_data_headers(f)[type], read_twix_protocol(f))
+function ScanInfo(f::AbstractString, type::Symbol)
+    twix = read_twix_protocol(f)
+    n_channels = read_n_channels(twix)
+    ScanInfo(read_data_headers(f, n_channels)[type], twix)
+end
 function Base.getindex(s::ScanInfo, i)
     if s.scan_headers[i] isa ScanHeaderVD
         return s.scan_headers[i]
@@ -58,9 +62,8 @@ function Base.read(io::IO, ::Type{ScanHeaderVD})
     header_start = position(io)
     mdh_byte_length = 192
     mask_offset = 40
-    channel_mdh_offset = 8
+    channel_mdh_offset_64 = 4
     ice_param_offset = 48 + (48 - 8) * 2
-    channels = 1
 
 
     seek(io, position(io) + mask_offset)
@@ -68,8 +71,9 @@ function Base.read(io::IO, ::Type{ScanHeaderVD})
     read!(io, mask_bytes)
     mask = get_scan_mask(mask_bytes)
 
-    dims = zeros(UInt16, 16)
+    dims = zeros(Int16, 16)
     read!(io, dims)
+    dims = Int.(dims)
     dims[3:end] .+= 1
 
     ice_param = zeros(Int16, 24)
@@ -77,9 +81,9 @@ function Base.read(io::IO, ::Type{ScanHeaderVD})
     read!(io, ice_param)
 
     data_start = header_start + mdh_byte_length
-    data_bytes = (2dims[COL] + channel_mdh_offset) * channels * 4
+    adc_length = dims[COL] + channel_mdh_offset_64
 
-    ScanHeaderVD(mask, scan_info(mask), dims, ice_param, (data_start, data_bytes))
+    ScanHeaderVD(mask, scan_info(mask), dims, ice_param, (data_start, adc_length))
 end
 
 struct Adc
