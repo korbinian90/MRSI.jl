@@ -4,7 +4,7 @@ function reconstruct(filename, type=:ONLINE)
     info = MRSI.calculate_additional_info(first(first(scaninfo)))
 
     sz = (scaninfo.twix[:n_frequency], scaninfo.twix[:n_frequency], prod(size(scaninfo)), info[:n_fid], scaninfo.twix[:n_channels])
-    image = mmap(tempname(), Array{ComplexF32,5}, sz)
+    image = mmap(tempname(), Array{ComplexF64,5}, sz)
 
     for (i, si) in enumerate(scaninfo)
         image[:, :, i, :, :] .= MRSI.reconstruct_slice(filename, si)
