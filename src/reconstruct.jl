@@ -4,11 +4,13 @@ function reconstruct(filename, type=:ONLINE)
     info = MRSI.calculate_additional_info(first(first(scaninfo)))
 
     sz = (scaninfo.twix[:n_frequency], scaninfo.twix[:n_frequency], prod(size(scaninfo)), info[:n_fid], scaninfo.twix[:n_channels])
-    image = write_emptynii(sz, tempname(); datatype=ComplexF32)
+    image = mmap(tempname(), Array{ComplexF32,5}, sz)
 
     for (i, si) in enumerate(scaninfo)
-        image.raw[:, :, i, :, :] .= MRSI.reconstruct_slice(filename, si)
+        image[:, :, i, :, :] .= MRSI.reconstruct_slice(filename, si)
     end
+
+    # image = fft_partitions!(image)
 
     return image
 end

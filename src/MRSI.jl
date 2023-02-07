@@ -1,6 +1,6 @@
 module MRSI
 
-using FFTW, MriResearchTools
+using FFTW, Mmap
 
 include("headers.jl")
 include("read_headers.jl")
