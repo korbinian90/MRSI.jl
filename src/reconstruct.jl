@@ -22,9 +22,10 @@ end
 
 function reconstruct_slice(filename, scaninfo)
     kspace_data = read_rearrange_slice(filename, scaninfo)
-
-    n_grid = scaninfo.twix[:n_frequency]
     kspace_points = MRSI.kspace_coordinates(scaninfo)
+    n_grid = scaninfo.twix[:n_frequency]
+
+    fov_shift!(kspace_data, kspace_points, scaninfo)
 
     return fourier_transform(kspace_data, kspace_points, n_grid)
 end
