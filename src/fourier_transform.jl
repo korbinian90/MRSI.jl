@@ -17,9 +17,4 @@ function calculate_dft_matrix(kspace_coordinates, n_grid)
     return reshape(dft_matrix, n_grid * n_grid, :)
 end
 
-function fft_partitions!(image)
-    # for z in eachslice(image; dims=[1, 2, 4, 5])
-    #     z .= fft(z)
-    # end
-    return fft(image, 3)
-end
+fft3D(image; dims=3) = fftshift(fft(ifftshift(image, dims), dims), dims)

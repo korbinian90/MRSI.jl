@@ -1,18 +1,23 @@
 function reconstruct(filename, type=:ONLINE)
     scaninfo = ScanInfo(filename, type)
+    image = mmaped_image(scaninfo)
 
-    info = MRSI.calculate_additional_info(first(first(scaninfo)))
-
-    sz = (scaninfo.twix[:n_frequency], scaninfo.twix[:n_frequency], prod(size(scaninfo)), info[:n_fid], scaninfo.twix[:n_channels])
-    image = mmap(tempname(), Array{ComplexF64,5}, sz)
-
-    for (i, si) in enumerate(scaninfo)
-        image[:, :, i, :, :] .= MRSI.reconstruct_slice(filename, si)
+    for (i, sliceinfo) in enumerate(scaninfo)
+        image[:, :, i, :, :] .= MRSI.reconstruct_slice(filename, sliceinfo)
     end
 
-    # image = fft_partitions!(image)
+    for i in axes(image, 4), j in axes(image, 5)
+        image[:, :, :, i, j] .= fft3D(image[:, :, :, i, j])
+    end
 
     return image
+end
+
+function mmaped_image(scaninfo, name=tempname())
+    n_fid = MRSI.calculate_additional_info(first(first(scaninfo)))[:n_fid]
+    n_slices = prod(size(scaninfo))
+    sz = (scaninfo.twix[:n_frequency], scaninfo.twix[:n_frequency], n_slices, n_fid, scaninfo.twix[:n_channels])
+    return mmap(name, Array{ComplexF64,5}, sz)
 end
 
 function reconstruct_slice(filename, scaninfo)
