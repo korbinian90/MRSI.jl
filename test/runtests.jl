@@ -29,7 +29,7 @@ end
         read_slice(io, sliceinfo)
     end
 
-    ordered_kspace = rearrange(slice, sliceinfo)
+    ordered_kspace = vcat(rearrange(slice, sliceinfo)...)
 
     kspace_points = MRSI.kspace_coordinates(sliceinfo)
     ft = fourier_transform(ordered_kspace, kspace_points, n_grid)

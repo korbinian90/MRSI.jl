@@ -21,7 +21,7 @@ function set_info!(info, headers)
     info[:max_r] = maximum(radius_normalized(h, info) for h in headers)
     info[:max_points_on_circle] = maximum(points_on_circle(h, info) for h in headers)
     info[:n_adc_points] = maximum(h.dims[COL] for h in headers)
-    info[:n_part] = length(unique(h.dims[SEG] for h in headers))
+    # info[:n_seg] = length(unique(h.dims[SEG] for h in headers))
     # info[:n_fid] = get_fid(first(first(headers)), info) # calculated on one circle
 end
 
@@ -52,7 +52,7 @@ function ScanInfo(f::AbstractString, type::Symbol)
     info = extract_twix(read_twix_protocol(f))
     headers = read_scan_headers(f, info[:n_channels])[type]
     set_info!(info, headers)
-    headers = rearrange_headers(headers, (@show info[:n_part]), (@show info[:max_n_circles]))
+    headers = rearrange_headers(headers, info[:n_part], info[:max_n_circles])
     ScanInfo(headers, info)
 end
 function Base.getindex(s::ScanInfo, i::Integer)

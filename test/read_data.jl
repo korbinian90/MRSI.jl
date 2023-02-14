@@ -9,5 +9,6 @@ using TestItemRunner
     end
 
     re = rearrange(slice, sliceinfo)
-    @test size(re) == (960, 840, 1) # (points_per_slice, n_fid, n_channels)
+    @test size(re) == (8,)
+    @test size(re[1]) == (120, 840, 1) # (points_per_slice, n_fid, n_channels)
 end
