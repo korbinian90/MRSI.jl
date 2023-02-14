@@ -6,7 +6,7 @@ end
 
 function read_circle(io, scaninfo)
     headers = scaninfo.headers
-    n_channels = scaninfo.twix[:n_channels]
+    n_channels = scaninfo[:n_channels]
     points_per_adc = headers[1].dims[COL]
 
     output = zeros(ComplexF32, points_per_adc, size(headers)..., n_channels)
@@ -34,12 +34,12 @@ function calculate_additional_info(scaninfo)
     if s[:points_on_circle] == 0
         s[:points_on_circle] = maximum(h.dims[IDC] - 1 for h in scaninfo)
     end
-    s[:points_on_circle] *= scaninfo.twix[:oversampling_factor]
+    s[:points_on_circle] *= scaninfo[:oversampling_factor]
 
     s[:temporal_interleaves] = maximum(h.dims[IDB] for h in scaninfo)
 
     s[:n_fid] = round(Int, s[:adc_points] * s[:adcs] / s[:points_on_circle] * s[:temporal_interleaves] - 0.5)
     s[:useful_adc_points] = (s[:n_fid] * s[:points_on_circle]) ÷ s[:temporal_interleaves]
-    s[:n_channels] = scaninfo.twix[:n_channels]
+    s[:n_channels] = scaninfo[:n_channels]
     return s
 end

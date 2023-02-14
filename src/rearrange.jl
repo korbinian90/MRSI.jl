@@ -1,5 +1,5 @@
 function rearrange(slice_data, scaninfo)
-    return vcat((rearrange_circle(d, i) for (d, i) in zip(slice_data, scaninfo))...)
+    return [rearrange_circle(d, i) for (d, i) in zip(slice_data, scaninfo)]
 end
 
 function rearrange_circle(circle_data, scaninfo)

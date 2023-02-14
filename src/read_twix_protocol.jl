@@ -1,21 +1,3 @@
-function extract_twix(twix)
-    position = try
-        twix["MeasYaps"]["sSpecPara"]["sVoI"]["sPosition"] |> sPos -> (sPos["dCor"], sPos["dSag"], sPos["dTra"])
-    catch
-        (0, 0, 0) # Parameter doesn't exist
-    end
-    return Dict(
-        :oversampling_factor => twix["Dicom"]["flReadoutOSFactor"],
-        :fov_readout => twix["MeasYaps"]["sSpecPara"]["sVoI"]["dReadoutFOV"],
-        :fov_phase => twix["MeasYaps"]["sSpecPara"]["sVoI"]["dPhaseFOV"],
-        :n_channels => length(map(coil -> coil["lRxChannelConnected"], twix["MeasYaps"]["sCoilSelectMeas"]["aRxCoilSelectData"][1]["asList"])),
-        :n_part => twix["MeasYaps"]["sKSpace"]["lPartitions"],
-        :n_frequency => twix["MeasYaps"]["sKSpace"]["lBaseResolution"],
-        :n_phase_encoding => twix["MeasYaps"]["sKSpace"]["lPhaseEncodingLines"],
-        :position => position,
-    )
-end
-
 ## Adapted from Philipp Ehses read_twix_hdr.m
 function read_twix_protocol(filename; scan=1)
     protocol = Dict()

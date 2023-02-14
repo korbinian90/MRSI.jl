@@ -1,6 +1,6 @@
 function kspace_coordinates(sliceinfo)
-    n_grid = sliceinfo.twix[:n_frequency]
-    fov_read = sliceinfo.twix[:fov_readout]
+    n_grid = sliceinfo[:n_frequency]
+    fov_read = sliceinfo[:fov_readout]
     coords = read_kspace_coordinates(sliceinfo)
     return normalize_kspace(coords, n_grid, fov_read)
 end
@@ -9,7 +9,7 @@ function read_kspace_coordinates(slice_headers)
     coordinates = Complex[]
     for circle_headers in slice_headers
         s = calculate_additional_info(circle_headers)
-        xy = read_kspace_coordinate(circle_headers[1])
+        xy = read_kspace_coordinate(first(circle_headers))
         coords = construct_coordinates_circle(xy, s[:points_on_circle])
         append!(coordinates, coords)
     end
@@ -36,11 +36,14 @@ function read_kspace_coordinate(head::ScanHeaderVD)
 end
 parse_to_float(a::Int16, b::Int16) = a + b / 10_000
 
-function radius_normalized(xy, n_grid, fov_read)
+function radius_normalized(xy, info)
     r = abs(xy)
-    delta_gm = 1e6 / (fov_read * GYRO_MAGNETIC_RATIO_OVER_TWO_PI)
-    maxR = delta_gm * n_grid / 2
-    return r / (2maxR)
+    delta_gm = 1e6 / (info[:fov_readout] * GYRO_MAGNETIC_RATIO_OVER_TWO_PI)
+    r_norm = delta_gm * info[:n_frequency]
+    return r / r_norm
+end
+function radius_normalized(head::ScanHeaderVD, info)
+    return radius_normalized(read_kspace_coordinate(head), info)
 end
 
 function max_r(n_grid, fov_read)

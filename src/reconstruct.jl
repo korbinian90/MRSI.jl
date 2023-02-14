@@ -6,33 +6,32 @@ function reconstruct(filename, type=:ONLINE)
         image[:, :, i, :, :] .= MRSI.reconstruct_slice(filename, sliceinfo)
     end
 
-    for i in axes(image, 4), j in axes(image, 5)
-        image[:, :, :, i, j] .= fft3D(image[:, :, :, i, j])
-    end
+    # for i in axes(image, 4), j in axes(image, 5)
+    #     image[:, :, :, i, j] .= fft3D(image[:, :, :, i, j])
+    # end
 
     return image
 end
 
-function mmaped_image(scaninfo, name=tempname())
-    n_fid = MRSI.calculate_additional_info(first(first(scaninfo)))[:n_fid]
-    n_slices = prod(size(scaninfo))
-    sz = (scaninfo.twix[:n_frequency], scaninfo.twix[:n_frequency], n_slices, n_fid, scaninfo.twix[:n_channels])
-    return mmap(name, Array{ComplexF64,5}, sz)
-end
+function reconstruct_slice(filename, sliceinfo)
+    kspace_data = read_rearrange_correct(filename, sliceinfo)
+    kspace_points = MRSI.kspace_coordinates(sliceinfo)
+    n_grid = sliceinfo[:n_frequency]
 
-function reconstruct_slice(filename, scaninfo)
-    kspace_data = read_rearrange_slice(filename, scaninfo)
-    kspace_points = MRSI.kspace_coordinates(scaninfo)
-    n_grid = scaninfo.twix[:n_frequency]
-
-    fov_shift!(kspace_data, kspace_points, scaninfo)
+    fov_shift!(kspace_data, kspace_points, sliceinfo)
 
     return fourier_transform(kspace_data, kspace_points, n_grid)
 end
 
-function read_rearrange_slice(filename, scaninfo)
+function read_rearrange_correct(filename, sliceinfo)
     slice = open(filename) do io
-        read_slice(io, scaninfo)
+        read_slice(io, sliceinfo)
     end
-    return rearrange(slice, scaninfo)
+    circles = rearrange(slice, sliceinfo)
+
+    # @show max_r = maximum_radius(sliceinfo)
+    # max_points = 120
+    # density_compensation!(circles, sliceinfo, max_r, max_points)
+
+    return vcat(circles...)
 end

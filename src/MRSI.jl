@@ -3,6 +3,7 @@ module MRSI
 using FFTW, Mmap
 
 include("reconstruct.jl")
+include("scaninfo.jl")
 include("headers.jl")
 include("read_headers.jl")
 include("rearrange_headers.jl")
@@ -12,6 +13,9 @@ include("read_twix_protocol.jl")
 include("rearrange.jl")
 include("fourier_transform.jl")
 include("fov_shift.jl")
+include("coil_combination.jl")
+include("density_compensation.jl")
+include("mmap.jl")
 
 export read_slice,
     rearrange,
