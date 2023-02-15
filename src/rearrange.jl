@@ -14,7 +14,7 @@ function rearrange_circle(circle_data, scaninfo)
 end
 
 merge_adc_lines(data, s) = reshape(data, s[:adc_points] * s[:adcs], s[:temporal_interleaves], s[:n_channels])
-cut_unused_adc_points(data, s) = data[1:s[:useful_adc_points], :, :, :]
+cut_unused_adc_points(data, s) = data[1:s[:useful_adc_points], :, :]
 reshape_into_circles(data, s) = reshape(data, s[:points_on_circle], s[:n_fid] ÷ s[:temporal_interleaves], s[:temporal_interleaves], s[:n_channels])
 function merge_temporal_interleaves(data, s)
     data = permutedims(data, (1, 3, 2, 4,))

@@ -1,4 +1,5 @@
 function fourier_transform(slice, kspace_coordinates, n_grid)
+    @show size(kspace_coordinates) size(slice)
     @assert length(kspace_coordinates) == size(slice, 1)
     slice_matrix = reshape(slice, length(kspace_coordinates), :)
     dft_matrix = calculate_dft_matrix(kspace_coordinates, n_grid)

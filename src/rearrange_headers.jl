@@ -9,7 +9,7 @@ function rearrange_headers(headers, n_part, max_n_circles)
 end
 
 function rearrange_headers_slice(slice_headers, n_part, max_n_circles)
-    @show circles = unique(h.dims[LIN] for h in slice_headers)
+    circles = unique(h.dims[LIN] for h in slice_headers)
     (part_order, circle_order, circles_per_part) = calculate_part_order(n_part, max_n_circles)
 
     rearranged = Array{Any}(undef, n_part)
