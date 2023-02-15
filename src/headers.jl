@@ -57,18 +57,6 @@ function Base.read(io::IO, ::Type{ScanHeaderVD})
     data_start = header_start + mdh_byte_length
     adc_length = dims[COL] + channel_mdh_offset_64
 
-    # if scan_info(mask) == :ONLINE
-    #     if dims[IDC] != 1
-    #         @show dims[IDC]
-    #     end
-    #     if adc_length != 7564
-    #         @show adc_length
-    #     end
-    #     if ice_param[6] != 108
-    #         @show ice_param[6]
-    #     end
-    # end
-
     ScanHeaderVD(mask, scan_info(mask), dims, ice_param, (data_start, adc_length))
 end
 

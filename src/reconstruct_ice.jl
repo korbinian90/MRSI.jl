@@ -19,7 +19,7 @@ function reconstruct_ice(filename, type=:ONLINE)
     (part_order, circle_order, circles_per_part) = calculate_part_order(info[:n_part], max_n_circles)
     # n_adcs = maximum(h.dims[IDA] for h in headers)
 
-    header_array = [[CircleTI[] for j in 1:circles_per_part[i]] for i in 1:info[:n_part]]
+    header_array = [[CircleTI[] for _ in 1:circles_per_part[i]] for i in 1:info[:n_part]]
 
     # n_fid = round(Int, s[:adc_points] * s[:n_adcs] / s[:n_points_on_circle] * s[:temporal_interleaves] - 0.5)
 
@@ -36,7 +36,6 @@ function reconstruct_ice(filename, type=:ONLINE)
         c = circle_ti_arr[TI]
         if add_header_and_test_if_last(c, head)
             slice = reconstruct_circle(c) # (n_freq, n_phase, n_points, n_channels)
-            @show fid_points = c[:fid_points_for_TI]
             image[:, :, part, c[:fid_points_for_TI], :] .+= slice
         end
     end
@@ -52,7 +51,7 @@ function Base.getindex(h::ScanHeaderVD, s::Symbol)
     if s == :n_adc_points
         h.dims[COL]
     elseif s == :n_TI
-        @show h.dims[IDD] - 1
+        h.dims[IDD] - 1
     elseif s == :TI
         h.dims[IDB]
     elseif s == :adc
@@ -89,7 +88,7 @@ end
 # end
 get_n_fid(n_adc_points, n_adcs, n_TI, n_points_on_circle) = round(Int, n_adc_points * n_adcs * n_TI / n_points_on_circle - 0.5) # why 0.5?
 function get_n_points_on_circle(h::ScanHeaderVD, oversampling_factor)
-    return @show round(Int, max(h.dims[IDC] - 1, h.ice_param[6]) * oversampling_factor)
+    return round(Int, max(h.dims[IDC] - 1, h.ice_param[6]) * oversampling_factor)
 end
 
 # get_fid_points_for_TI(c::CircleTI) = get_fid_points_for_TI(get_TI(c), get_n_TI(c), get_n_fid(c))
@@ -97,7 +96,11 @@ end
 function add_header_and_test_if_last(c::CircleTI, h::ScanHeaderVD)
     push!(c.headers, h)
     # push!(c.order, h[:adc])
-    @show total_length = c[:n_fid] * c[:n_points_on_circle] ÷ c[:n_TI]
+    total_length = try
+        c[:n_fid] * c[:n_points_on_circle] ÷ c[:n_TI]
+    catch
+        @show c[:n_fid] c[:n_points_on_circle] c[:n_TI]
+    end
     return length(c.headers) * h[:n_adc_points] ≥ total_length
 end
 
@@ -112,12 +115,13 @@ end
 function reconstruct_circle(c::CircleTI)
     info = c.info
 
-    @show info[:n_channels]
+    info[:n_channels]
     data = open(info[:filename]) do io
         vcat((read_adc(io, head.data_position, info[:n_channels]) for head in c.headers)...)
     end
-    data = reshape(data[begin:c[:n_useful_adc_points]], c[:n_points_on_circle], :)
+    data = reshape(data[begin:c[:n_useful_adc_points], :], c[:n_points_on_circle], :, info[:n_channels])
     coords = construct_coordinates_circle(c)
+    fov_shift!(data, coords, info)
     # return data
     return fourier_transform(data, coords, info[:n_frequency])
 end
