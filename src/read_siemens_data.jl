@@ -1,18 +1,12 @@
-const GYRO_MAGNETIC_RATIO_OVER_TWO_PI = 42.57747892; # value taken from MATLAB script read_ascconv.m
-
 function read_slice(io, scaninfo)
-    return [read_circle(io, si) for si in scaninfo]
+    return [read_circle(io, s) for s in scaninfo]
 end
 
-function read_circle(io, scaninfo)
-    headers = scaninfo.headers
-    n_channels = scaninfo[:n_channels]
-    points_per_adc = headers[1].dims[COL]
-
-    output = zeros(ComplexF32, points_per_adc, size(headers)..., n_channels)
-    for I in CartesianIndices(headers)
+function read_circle(io, s::ScanInfo)
+    output = zeros(ComplexF32, s[:n_adc_points], size(s.headers)..., s[:n_channels])
+    for I in CartesianIndices(s.headers)
         seek(io, 5) # skip the first 5 elements
-        output[:, I, :] .= read_adc(io, headers[I].data_position, n_channels) # dims: (adc_points, adc_line, TI, part, channels)
+        output[:, I, :] .= read_adc(io, s.headers[I].data_position, s[:n_channels]) # dims: (adc_points, adc_line, TI, part, channels)
     end
     return output
 end

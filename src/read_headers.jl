@@ -6,34 +6,42 @@ function read_rearrange_data_headers(filename, type, n_channels, n_part, max_n_c
     return rearrange_headers(headers, n_part, max_n_circles)
 end
 
-function read_scan_headers(filename, n_channels; scan=1)  # only with one scan implemented for now
+function read_scan_headers(filename, n_channels)
     scan_headers = Dict()
     open(filename) do io
-        file_header = read(io, HeaderInfo)
-        offset = file_header.meas_offset[scan]
-        seek(io, offset)
-
-        # skip twix header
-        header_length = read(io, UInt32)
-        seek(io, offset + header_length)
-
+        seek_to_first_scan_header!(io)
         while true
             scan = read(io, ScanHeaderVD)
             if scan.mask[1] # signals ACQEND
                 break
             end
-
-            start, n_adc = scan.data_position
-            if haskey(scan_headers, scan.type)
-                push!(scan_headers[scan.type], scan)
-            else
-                scan_headers[scan.type] = [scan]
-            end
-            n_bytes = n_adc * n_channels * 8
-            seek(io, start + n_bytes)
+            store_header!(scan_headers, scan)
+            seek_to_next_header!(io, scan.data_position, n_channels)
         end
     end
     return scan_headers
+end
+
+function seek_to_first_scan_header!(io; scan=1)
+    file_header = read(io, HeaderInfo)
+    offset = file_header.meas_offset[scan]
+    seek(io, offset)
+    # skip twix header
+    header_length = read(io, UInt32)
+    seek(io, offset + header_length)
+end
+
+function store_header!(headers, head)
+    if haskey(headers, head.type)
+        push!(headers[head.type], head)
+    else
+        headers[head.type] = [head]
+    end
+end
+
+function seek_to_next_header!(io, (start, n_adc), n_channels)
+    n_bytes = n_adc * n_channels * 8
+    seek(io, start + n_bytes)
 end
 
 function checkVD(filename)

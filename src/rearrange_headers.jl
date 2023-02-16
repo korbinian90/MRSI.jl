@@ -1,4 +1,5 @@
-function rearrange_headers(headers, n_part, max_n_circles)
+"""Returns headers as nested array [slice, part][circle][adc,TI]"""
+function rearrange_headers(headers::AbstractArray{ScanHeaderVD}, n_part, max_n_circles)
     slices = unique(h.dims[SLI] for h in headers)
     rearranged = Array{Any}(undef, maximum(slices), n_part)
     for slice in slices
@@ -12,26 +13,22 @@ function rearrange_headers_slice(slice_headers, n_part, max_n_circles)
     circles = unique(h.dims[LIN] for h in slice_headers)
     (part_order, circle_order, circles_per_part) = calculate_part_order(n_part, max_n_circles)
 
-    rearranged = Array{Any}(undef, n_part)
-    for (i, n) in enumerate(circles_per_part)
-        rearranged[i] = Array{Any}(undef, n)
-    end
+    rearranged = [Array{Any}(undef, n) for n in circles_per_part]
+    for num in circles # oldADC 3D
+        circle_of_part = circle_order[num]
+        part = part_order[num]
 
-    for circle in circles
-        circle_of_part = circle_order[circle]
-        part = part_order[circle]
-
-        circle_headers = [h for h in slice_headers if h.dims[LIN] == circle]
+        circle_headers = [h for h in slice_headers if h.dims[LIN] == num]
         rearranged[part][circle_of_part] = order_adcs_and_temporal_interleaves(circle_headers)
     end
     return rearranged
 end
 
 function order_adcs_and_temporal_interleaves(circle_headers)
-    temporal_interleaves = maximum(h.dims[IDB] for h in circle_headers)
-    adcs = maximum(h.dims[IDA] for h in circle_headers)
+    n_temporal_interleaves = maximum(h.dims[IDB] for h in circle_headers)
+    n_adcs = maximum(h.dims[IDA] for h in circle_headers)
 
-    ordered = Array{ScanHeaderVD}(undef, adcs, temporal_interleaves)
+    ordered = Array{ScanHeaderVD}(undef, n_adcs, n_temporal_interleaves)
     for head in circle_headers
         TI = head.dims[IDB]
         adc = head.dims[IDA]

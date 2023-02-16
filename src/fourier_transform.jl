@@ -17,4 +17,9 @@ function calculate_dft_matrix(kspace_coordinates, n_grid)
     return reshape(dft_matrix, n_grid * n_grid, :)
 end
 
-fft3D(image; dims=3) = fftshift(fft(ifftshift(image, dims), dims), dims)
+function fft_slice_dim!(image::AbstractArray{T,5}) where {T}
+    for i in axes(image, 4), j in axes(image, 5)
+        image[:, :, :, i, j] .= fft_slice_dim(image[:, :, :, i, j])
+    end
+end
+fft_slice_dim(image; dims=3) = fftshift(fft(ifftshift(image, dims), dims), dims)

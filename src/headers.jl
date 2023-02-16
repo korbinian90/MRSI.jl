@@ -59,11 +59,14 @@ function Base.read(io::IO, ::Type{ScanHeaderVD})
 
     ScanHeaderVD(mask, scan_info(mask), dims, ice_param, (data_start, adc_length))
 end
-
-# Headers for one temporal interleave of one circle (adcs accumulated)
-struct CircleTI
-    headers::AbstractArray{ScanHeaderVD}
-    # order::AbstractArray
-    info
+function Base.getindex(h::ScanHeaderVD, s::Symbol)
+    if s == :n_adc_points
+        h.dims[COL]
+    elseif s == :n_TI
+        h.dims[IDD] - 1
+    elseif s == :TI
+        h.dims[IDB]
+    elseif s == :adc
+        h.dims[IDA]
+    end
 end
-CircleTI(info) = CircleTI(ScanHeaderVD[], info)

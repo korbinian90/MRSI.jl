@@ -1,21 +1,21 @@
 function reconstruct(filename, type=:ONLINE)
     scaninfo = ScanInfo(filename, type)
+    scaninfo.info[:n_fid] = MRSI.calculate_additional_info(scaninfo[1][1])[:n_fid]
+
     image = mmaped_image(scaninfo)
 
     for (i, sliceinfo) in enumerate(scaninfo)
         image[:, :, i, :, :] .= MRSI.reconstruct_slice(filename, sliceinfo)
     end
 
-    # for i in axes(image, 4), j in axes(image, 5)
-    #     image[:, :, :, i, j] .= fft3D(image[:, :, :, i, j])
-    # end
+    fft_slice_dim!(image)
 
     return image
 end
 
 function reconstruct_slice(filename, sliceinfo)
     kspace_data = read_rearrange_correct(filename, sliceinfo)
-    kspace_points = MRSI.kspace_coordinates(sliceinfo)
+    kspace_points = read_kspace_coordinates(sliceinfo)
     n_grid = sliceinfo[:n_frequency]
 
     fov_shift!(kspace_data, kspace_points, sliceinfo)
