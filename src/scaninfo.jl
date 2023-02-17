@@ -24,6 +24,7 @@ function calculate_additional_info!(info)
     info[:max_n_circles] = info[:n_frequency] ÷ 2
     info[:max_r] = max_r(info[:n_frequency], info[:fov_readout])
     info[:part_order], info[:circle_order], info[:circles_per_part] = calculate_part_order(info[:n_part], info[:max_n_circles])
+    info[:max_n_points_on_circle] = 120
     # info[:max_points_on_circle] = maximum(points_on_circle(h, info) for h in headers)
     # info[:n_adc_points] = maximum(h.dims[COL] for h in headers)
     # info[:n_seg] = length(unique(h.dims[SEG] for h in headers))
@@ -75,19 +76,23 @@ Base.length(s::ScanInfo) = length(s.headers)
 Base.size(s::ScanInfo, dim...) = size(s.headers, dim...)
 Base.lastindex(s::ScanInfo) = length(s)
 
-# Headers for one temporal interleave of one circle (adcs accumulated)
-struct CircleTI
-    headers::AbstractArray{ScanHeaderVD}
+# Headers for one circle (adcs accumulated)
+mutable struct Circle
+    headers # [TI][adc]
     info
 end
-CircleTI(info) = CircleTI(ScanHeaderVD[], info)
-function Base.getindex(c::CircleTI, s::Symbol)
+Circle(info) = Circle(nothing, info)
+function Base.getindex(c::Circle, s::Symbol)
     if haskey(c.info, s) # look in info
         c.info[s]
+    elseif s == :part
+        c[:part_order][c[:LIN]]
+    elseif s == :circle
+        c[:circle_order][c[:LIN]]
     elseif s == :n_adcs # calculate here
         maximum(h.dims[IDA] for h in c.headers)
     elseif s == :n_points_on_circle
-        get_n_points_on_circle(first(c.headers), c.info[:oversampling_factor])
+        get_n_points_on_circle(first(first(c.headers)), c.info[:oversampling_factor])
     elseif s == :n_fid
         get_n_fid(c[:n_adc_points], c[:n_adcs], c[:n_TI], c[:n_points_on_circle] - 0.5) # why 0.5?
     elseif s == :fid_points_for_TI
@@ -95,7 +100,7 @@ function Base.getindex(c::CircleTI, s::Symbol)
     elseif s == :n_useful_adc_points
         (c[:n_fid] * c[:n_points_on_circle]) ÷ c[:n_TI]
     else # look in ScanHeaderVD
-        first(c.headers)[s]
+        first(first(c.headers))[s]
     end
 end
 

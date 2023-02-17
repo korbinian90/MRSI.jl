@@ -68,5 +68,7 @@ function Base.getindex(h::ScanHeaderVD, s::Symbol)
         h.dims[IDB]
     elseif s == :adc
         h.dims[IDA]
+    elseif s == :LIN
+        h.dims[LIN]
     end
 end

@@ -2,7 +2,7 @@ function read_kspace_coordinates(slice_headers)
     return vcat((construct_circle_coordinates(first(c), c) for c in slice_headers)...)
 end
 
-construct_circle_coordinates(c::CircleTI) = construct_circle_coordinates(first(c.headers), c)
+construct_circle_coordinates(c::Circle) = construct_circle_coordinates(first(first(c.headers)), c)
 function construct_circle_coordinates(header, info)
     xy = read_first_kspace_coordinate_normalized(header, info)
     coords = construct_circle_coordinates(xy, info[:n_points_on_circle])
