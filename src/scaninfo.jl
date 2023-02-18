@@ -24,7 +24,6 @@ function calculate_additional_info!(info)
     info[:max_n_circles] = info[:n_frequency] ÷ 2
     info[:max_r] = max_r(info[:n_frequency], info[:fov_readout])
     info[:part_order], info[:circle_order], info[:circles_per_part] = calculate_part_order(info[:n_part], info[:max_n_circles])
-    info[:max_n_points_on_circle] = 120
     # info[:max_points_on_circle] = maximum(points_on_circle(h, info) for h in headers)
     # info[:n_adc_points] = maximum(h.dims[COL] for h in headers)
     # info[:n_seg] = length(unique(h.dims[SEG] for h in headers))

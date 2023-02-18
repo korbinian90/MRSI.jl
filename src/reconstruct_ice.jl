@@ -1,14 +1,15 @@
 function reconstruct_ice(filename, type=:ONLINE)
     info = extract_twix(read_twix_protocol(filename))
     info[:filename] = filename
+    calculate_additional_info!(info)
     headers = read_scan_headers(filename, info[:n_channels])[type]
 
     ## Info cheating
-    info[:n_fid] = MRSI.calculate_additional_info(ScanInfo(filename, :ONLINE)[1][2])[:n_fid]
-    @show info[:radii] = [radius_normalized(headers[findfirst(h -> h.dims[LIN] == i, headers)], info) for i in 1:info[:max_n_circles]]
+    info[:n_fid] = MRSI.calculate_additional_info(ScanInfo(filename, :ONLINE)[1][2])[:n_fid] # fine, is available in ICE
+    info[:radii] = [radius_normalized(headers[findfirst(h -> info[:circle_order][h.dims[LIN]] == i, headers)], info) for i in 1:info[:max_n_circles]] # problem
+    info[:max_n_points_on_circle] = maximum([get_n_points_on_circle(h, info[:oversampling_factor]) for h in headers]) # TODO
     ##
 
-    calculate_additional_info!(info)
 
     image = mmaped_image(info)
 
