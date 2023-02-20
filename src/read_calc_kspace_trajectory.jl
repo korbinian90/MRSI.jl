@@ -1,19 +1,15 @@
-function read_kspace_coordinates(slice_headers)
-    return vcat((construct_circle_coordinates(first(c), c) for c in slice_headers)...)
-end
-
 construct_circle_coordinates(c::Circle) = construct_circle_coordinates(first(first(c.headers)), c)
-function construct_circle_coordinates(header, info)
+function construct_circle_coordinates(header::ScanHeaderVD, info)
     xy = read_first_kspace_coordinate_normalized(header, info)
-    coords = construct_circle_coordinates(xy, info[:n_points_on_circle])
-    return coords
+    return construct_circle_coordinates(xy, info)
 end
 
-function construct_circle_coordinates(xy::Number, points_on_circle::Number)
-    angle_increment = 2pi / points_on_circle
+function construct_circle_coordinates(xy::Complex, info)
+    n = info[:n_points_on_circle]
+    angle_increment = 2pi / n
     r = abs(xy)
-    angle_first_point = angle(xy) - pi / 2
-    phi = angle_first_point .- (0:points_on_circle-1) * angle_increment
+    angle_first_point = angle(xy) - pi / 2 # identical to matlab
+    phi = angle_first_point .- (0:n-1) * angle_increment
     coords = r .* exp.(im .* phi)
     return coords
 end
