@@ -19,18 +19,43 @@ function extract_twix(twix)
         :position => position,
         :slice_normal => slice_normal,
     )
-    calculate_additional_info!(info)
+    calculate_twix_info!(info)
     return info
 end
 
-function calculate_additional_info!(info)
+function calculate_twix_info!(info)
     info[:max_n_circles] = info[:n_frequency] ÷ 2
     info[:max_r] = max_r(info[:n_frequency], info[:fov_readout])
     info[:part_order], info[:circle_order], info[:circles_per_part] = calculate_part_order(info[:n_part], info[:max_n_circles])
-    # info[:max_points_on_circle] = maximum(points_on_circle(h, info) for h in headers)
-    # info[:n_adc_points] = maximum(h.dims[COL] for h in headers)
-    # info[:n_seg] = length(unique(h.dims[SEG] for h in headers))
-    # info[:n_fid] = get_fid(first(first(headers)), info) # calculated on one circle
+end
+
+function calculate_circle_info(info, headers)
+    info = copy(info)
+    info[:n_adc_points] = first(headers)[:n_adc_points]
+
+    return info
+end
+
+function calculate_complete_info!(info, headers)
+    info[:radii] = [radius_normalized(headers[findfirst(h -> info[:circle_order][h.dims[LIN]] == i, headers)], info) for i in 1:info[:max_n_circles]]
+    info[:max_n_points_on_circle] = maximum(get_n_points_on_circle(h, info[:oversampling_factor]) for h in headers)
+
+    headers_per_circle = [filter(h -> info[:circle_order][h.dims[LIN]] == i, headers) for i in 1:info[:max_n_circles]]
+    info[:n_TI_list] = [maximum(h[:TI] for h in circle_heads) for circle_heads in headers_per_circle]
+
+    info[:n_adc_points_list] = [h[:n_adc_points] for h in first.(headers_per_circle)]
+    n_adcs = maximum(h.dims[IDA] for h in headers)
+    # info[:part] = length(unique(h.dims[SEG] for h in headers))
+
+    n_points_on_circle = maximum(h.ice_param[6] for h in headers)
+    if n_points_on_circle == 0
+        n_points_on_circle = maximum(h.dims[IDC] - 1 for h in headers)
+    end
+    n_points_on_circle *= info[:oversampling_factor]
+
+    n_TI = maximum(h.dims[IDB] for h in headers)
+
+    info[:n_fid] = get_n_fid(n_adc_points, n_adcs, n_TI, n_points_on_circle)
 end
 
 function max_r(n_grid, fov_read)
@@ -49,8 +74,8 @@ function ScanInfo(f::AbstractString, type::Symbol)
         error("only VD implemented")
     end
     info = extract_twix(read_twix_protocol(f))
-    headers = read_scan_headers(f, info[:n_channels])[type]
-    headers = rearrange_headers(headers, info[:n_part], info[:max_n_circles])
+    headers = read_scan_headers(info)[type]
+    headers = rearrange_headers(headers, info)
     ScanInfo(headers, info)
 end
 function Base.getindex(s::ScanInfo, i::Integer)

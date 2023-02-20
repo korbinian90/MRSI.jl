@@ -1,11 +1,10 @@
 function reconstruct_ice(filename, type=:ONLINE)
     info = extract_twix(read_twix_protocol(filename))
     info[:filename] = filename
-    calculate_additional_info!(info)
-    headers = read_scan_headers(filename, info[:n_channels])[type]
+    headers = read_scan_headers(info)[type]
 
     ## Info cheating (obtained from all headers instead of streamed like in ICE)
-    info[:n_fid] = MRSI.calculate_additional_info(ScanInfo(filename, :ONLINE)[1][2])[:n_fid] # fine, is available in ICE
+    info[:n_fid] = MRSI.calculate_additional_info(headers, info)[:n_fid] # fine, is available in ICE
     info[:radii] = [radius_normalized(headers[findfirst(h -> info[:circle_order][h.dims[LIN]] == i, headers)], info) for i in 1:info[:max_n_circles]] # problem
     info[:max_n_points_on_circle] = maximum([get_n_points_on_circle(h, info[:oversampling_factor]) for h in headers]) # can be corrected afterwards
     info[:n_TI_list] = [maximum(h[:TI] for h in filter(h -> info[:circle_order][h.dims[LIN]] == i, headers)) for i in 1:info[:max_n_circles]] # problem in newADC

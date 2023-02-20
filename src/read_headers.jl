@@ -1,14 +1,14 @@
-function read_rearrange_data_headers(filename, type, n_channels, n_part, max_n_circles)
-    if !checkVD(filename)
+function read_rearrange_data_headers(info, type)
+    if !checkVD(info[:filename])
         error("only VD implemented")
     end
-    headers = read_scan_headers(filename, n_channels)[type]
-    return rearrange_headers(headers, n_part, max_n_circles)
+    headers = read_scan_headers(info)[type]
+    return rearrange_headers(headers, info)
 end
 
-function read_scan_headers(filename, n_channels)
+function read_scan_headers(info)
     scan_headers = Dict()
-    open(filename) do io
+    open(info[:filename]) do io
         seek_to_first_scan_header!(io)
         while true
             scan = read(io, ScanHeaderVD)
@@ -16,7 +16,7 @@ function read_scan_headers(filename, n_channels)
                 break
             end
             store_header!(scan_headers, scan)
-            seek_to_next_header!(io, scan.data_position, n_channels)
+            seek_to_next_header!(io, scan.data_position, info[:n_channels])
         end
     end
     return scan_headers

@@ -1,10 +1,10 @@
 """Returns headers as nested array [slice, part][circle][adc,TI]"""
-function rearrange_headers(headers::AbstractArray{ScanHeaderVD}, n_part, max_n_circles)
+function rearrange_headers(headers::AbstractArray{ScanHeaderVD}, info)
     slices = unique(h.dims[SLI] for h in headers)
-    rearranged = Array{Any}(undef, maximum(slices), n_part)
+    rearranged = Array{Any}(undef, maximum(slices), info[:n_part])
     for slice in slices
         slice_headers = [h for h in headers if h.dims[SLI] == slice]
-        rearranged[slice, :] .= rearrange_headers_slice(slice_headers, n_part, max_n_circles)
+        rearranged[slice, :] .= rearrange_headers_slice(slice_headers, info[:n_part], info[:max_n_circles])
     end
     return rearranged
 end

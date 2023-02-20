@@ -1,12 +1,13 @@
-function read_slice(io, scaninfo)
-    return [read_circle(io, s) for s in scaninfo]
+function read_slice(io, slice_headers, info)
+    return [read_circle(io, s, info) for s in slice_headers]
 end
 
-function read_circle(io, s::ScanInfo)
-    output = zeros(ComplexF32, s[:n_adc_points], size(s.headers)..., s[:n_channels])
-    for I in CartesianIndices(s.headers)
+function read_circle(io, circle_headers, info; type=ComplexF64)
+    info = calculate_circle_info(info, circle_headers)
+    output = zeros(type, info[:n_adc_points], size(circle_headers)..., info[:n_channels])
+    for I in CartesianIndices(circle_headers) # loops over [adc_line, TI, part]
         seek(io, 5) # skip the first 5 elements
-        output[:, I, :] .= read_adc(io, s.headers[I].data_position, s[:n_channels]) # dims: (adc_points, adc_line, TI, part, channels)
+        output[:, I, :] .= read_adc(io, circle_headers[I].data_position, info[:n_channels]) # dims: [adc_points, adc_line, TI, part, channels]
     end
     return output
 end
@@ -16,24 +17,4 @@ function read_adc(io::IO, (start, adc_length), channels)
     seek(io, start)
     read!(io, adc)
     return view(adc, 5:adc_length, :)
-end
-
-function calculate_additional_info(scaninfo)
-    s = Dict{Symbol,Int}()
-    s[:adc_points] = maximum(h.dims[COL] for h in scaninfo)
-    s[:adcs] = maximum(h.dims[IDA] for h in scaninfo)
-    s[:part] = length(unique(h.dims[SEG] for h in scaninfo))
-
-    s[:points_on_circle] = maximum(h.ice_param[6] for h in scaninfo)
-    if s[:points_on_circle] == 0
-        s[:points_on_circle] = maximum(h.dims[IDC] - 1 for h in scaninfo)
-    end
-    s[:points_on_circle] *= scaninfo[:oversampling_factor]
-
-    s[:temporal_interleaves] = maximum(h.dims[IDB] for h in scaninfo)
-
-    s[:n_fid] = round(Int, s[:adc_points] * s[:adcs] / s[:points_on_circle] * s[:temporal_interleaves] - 0.5)
-    s[:useful_adc_points] = (s[:n_fid] * s[:points_on_circle]) ÷ s[:temporal_interleaves]
-    s[:n_channels] = scaninfo[:n_channels]
-    return s
 end

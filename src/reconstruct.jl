@@ -1,11 +1,14 @@
 function reconstruct(filename, type=:ONLINE)
-    scaninfo = ScanInfo(filename, type)
-    scaninfo.info[:n_fid] = MRSI.calculate_additional_info(scaninfo[1][1])[:n_fid]
+    info = extract_twix(read_twix_protocol(filename))
+    info[:filename] = filename
+    headers = read_scan_headers(info)[type]
+    calculate_complete_info!(info, headers)
+    headers = rearrange_headers(headers, info)
 
-    image = mmaped_image(scaninfo)
+    image = mmaped_image(info)
 
-    for (i, sliceinfo) in enumerate(scaninfo)
-        image[:, :, i, :, :] .= MRSI.reconstruct_slice(filename, sliceinfo)
+    for (i, slice_headers) in enumerate(headers)
+        image[:, :, i, :, :] .= MRSI.reconstruct_slice(slice_headers, info)
     end
 
     fft_slice_dim!(image)
@@ -13,25 +16,25 @@ function reconstruct(filename, type=:ONLINE)
     return image
 end
 
-function reconstruct_slice(filename, sliceinfo)
-    kspace_data = read_rearrange_correct(filename, sliceinfo)
-    kspace_points = read_kspace_coordinates(sliceinfo)
-    n_grid = sliceinfo[:n_frequency]
+function reconstruct_slice(slice_headers, info)
+    kspace_data = read_rearrange_correct(slice_headers, info)
+    kspace_points = read_kspace_coordinates(info)
+    n_grid = info[:n_frequency]
 
-    fov_shift!(kspace_data, kspace_points, sliceinfo)
+    fov_shift!(kspace_data, kspace_points, info)
 
     return fourier_transform(kspace_data, kspace_points, n_grid)
 end
 
-function read_rearrange_correct(filename, sliceinfo)
-    slice = open(filename) do io
-        read_slice(io, sliceinfo)
+function read_rearrange_correct(slice_headers, info)
+    slice = open(info[:filename]) do io
+        read_slice(io, slice_headers, info)
     end
-    circles = rearrange(slice, sliceinfo)
+    circles = rearrange(slice, info)
 
-    # @show max_r = maximum_radius(sliceinfo)
+    # @show max_r = maximum_radius(info)
     # max_points = 120
-    # density_compensation!(circles, sliceinfo, max_r, max_points)
+    density_compensation!(circles, info)
 
     return vcat(circles...)
 end
