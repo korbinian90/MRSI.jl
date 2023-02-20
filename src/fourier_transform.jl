@@ -1,9 +1,14 @@
-function fourier_transform(slice, kspace_coordinates, n_grid)
-    @assert length(kspace_coordinates) == size(slice, 1)
-    slice_matrix = reshape(slice, length(kspace_coordinates), :)
+"""
+    fourier_transform(kdata, kspace_coordinates, n_grid)
+Fourier transform from kspace to a slice. Can be one circle or whole slice
+
+"""
+function fourier_transform(kdata, kspace_coordinates, n_grid)
+    @assert length(kspace_coordinates) == size(kdata, 1)
+    data_matrix = reshape(kdata, length(kspace_coordinates), :)
     dft_matrix = calculate_dft_matrix(kspace_coordinates, n_grid)
-    image_matrix = dft_matrix * slice_matrix
-    image = reshape(image_matrix, n_grid, n_grid, size(slice)[2:end]...) # one slice
+    image_matrix = dft_matrix * data_matrix
+    image = reshape(image_matrix, n_grid, n_grid, size(kdata)[2:end]...) # one slice
     return image
 end
 
