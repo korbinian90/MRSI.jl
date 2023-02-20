@@ -59,16 +59,3 @@ function Base.read(io::IO, ::Type{ScanHeaderVD})
 
     ScanHeaderVD(mask, scan_info(mask), dims, ice_param, (data_start, adc_length))
 end
-function Base.getindex(h::ScanHeaderVD, s::Symbol)
-    if s == :n_adc_points
-        h.dims[COL]
-    elseif s == :n_TI
-        h.dims[IDD] - 1
-    elseif s == :TI
-        h.dims[IDB]
-    elseif s == :adc
-        h.dims[IDA]
-    elseif s == :LIN
-        h.dims[LIN]
-    end
-end

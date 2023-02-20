@@ -1,40 +1,77 @@
 function reconstruct(filename, type=:ONLINE)
-    info = extract_twix(read_twix_protocol(filename))
-    info[:filename] = filename
-    headers = read_scan_headers(info)[type]
-    calculate_complete_info!(info, headers)
-    headers = rearrange_headers(headers, info)
+    data_headers, info = read_scan_info(filename, type)
 
     image = mmaped_image(info)
-
-    for (i, slice_headers) in enumerate(headers)
-        image[:, :, i, :, :] .= MRSI.reconstruct_slice(slice_headers, info)
-    end
-
+    read_and_reconstruct_image_per_circle!(image, data_headers, info)
     fft_slice_dim!(image)
 
     return image
 end
 
-function reconstruct_slice(slice_headers, info)
-    kspace_data = read_rearrange_correct(slice_headers, info)
-    kspace_points = read_kspace_coordinates(info)
-    n_grid = info[:n_frequency]
+function read_scan_info(filename, type)
+    checkVD(filename) || error("only implemented for VD files")
+    info = extract_twix(read_twix_protocol(filename))
+    info[:filename] = filename
+    headers = read_scan_headers(info)[type]
 
-    fov_shift!(kspace_data, kspace_points, info)
-
-    return fourier_transform(kspace_data, kspace_points, n_grid)
+    ## Info cheating (obtained from all headers instead of streamed like in ICE)
+    info[:n_fid] = calculate_fid(info, headers) # fine, is available in ICE
+    info[:radii] = [radius_normalized(headers[findfirst(h -> info[:circle_order][h.dims[LIN]] == i, headers)], info) for i in 1:info[:max_n_circles]] # problem
+    info[:max_n_points_on_circle] = maximum([get_n_points_on_circle(h, info[:oversampling_factor]) for h in headers]) # can be corrected afterwards
+    info[:n_TI_list] = [maximum(h[:TI] for h in filter(h -> info[:circle_order][h.dims[LIN]] == i, headers)) for i in 1:info[:max_n_circles]] # problem in newADC
+    ##
+    return headers, info
 end
 
-function read_rearrange_correct(slice_headers, info)
-    slice = open(info[:filename]) do io
-        read_slice(io, slice_headers, info)
+function read_and_reconstruct_image_per_circle!(image, headers, info)
+    headers_sorted_into_circles = initialize_header_storage(info)
+    for head in headers
+        circle = store!(headers_sorted_into_circles, head, info)
+        if is_complete(circle)
+            image[:, :, circle[:part], :, :] .+= reconstruct(circle)
+        end
     end
-    circles = rearrange(slice, info)
+end
 
-    # @show max_r = maximum_radius(info)
-    # max_points = 120
-    density_compensation!(circles, info)
+# Returns [n_freq, n_phase, n_points, n_channels]
+function reconstruct(c::Circle)
+    kspace_coordinates = construct_circle_coordinates(c)
+    kdata = read_data(c)
 
-    return vcat(circles...)
+    fov_shift!(kdata, kspace_coordinates, c)
+    frequency_offset_correction!(kdata, c)
+    density_compensation!(kdata, c)
+
+    image = fourier_transform(kdata, kspace_coordinates, c[:n_frequency])
+    return image
+end
+
+## Functions to store headers into circles
+initialize_header_storage(info) = [[Circle(info) for _ in 1:info[:circles_per_part][i]] for i in 1:info[:n_part]]
+
+function store!(header_array, head, info)
+    circle = get_circle(header_array, head, info)
+    store!(circle, head)
+    return circle
+end
+
+function get_circle(header_array, head, info)
+    num = head.dims[LIN]
+    circle = info[:circle_order][num]
+    part = info[:part_order][num]
+    return header_array[part][circle]
+end
+
+function store!(c::Circle, h::ScanHeaderVD)
+    n_ti = c[:n_TI_list][c[:circle_order][h[:LIN]]] # temporary fix
+    if isnothing(c.headers)
+        c.headers = [ScanHeaderVD[] for _ in 1:n_ti]
+    end
+    push!(c.headers[h[:TI]], h)
+end
+
+function is_complete(c::Circle)
+    required_length = c[:n_fid] * c[:n_points_on_circle] ÷ c[:n_TI]
+    is_full(heads) = length(heads) * c[:n_adc_points] ≥ required_length
+    return all(is_full.(c.headers))
 end

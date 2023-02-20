@@ -1,11 +1,3 @@
-function read_rearrange_data_headers(info, type)
-    if !checkVD(info[:filename])
-        error("only VD implemented")
-    end
-    headers = read_scan_headers(info)[type]
-    return rearrange_headers(headers, info)
-end
-
 function read_scan_headers(info)
     scan_headers = Dict()
     open(info[:filename]) do io
