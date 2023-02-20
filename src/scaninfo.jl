@@ -2,10 +2,12 @@ const GYRO_MAGNETIC_RATIO_OVER_TWO_PI = 42.57747892; # value taken from MATLAB s
 
 function extract_twix(twix)
     position = try
-        twix["MeasYaps"]["sSpecPara"]["sVoI"]["sPosition"] |> sPos -> (sPos["dCor"], sPos["dSag"], sPos["dTra"])
+        # twix["MeasYaps"]["sSpecPara"]["sVoI"]["sPosition"] |> sPos -> (sPos["dCor"], sPos["dSag"], sPos["dTra"])
+        twix["MeasYaps"]["sSliceArray"]["asSlice"][1]["sPosition"] |> sPos -> [get(sPos, "dCor", 0), get(sPos, "dSag", 0), get(sPos, "dTra", 0)]
     catch
-        (0, 0, 0) # Parameter doesn't exist
+        [0, 0, 0] # Parameter doesn't exist
     end
+    slice_normal = twix["MeasYaps"]["sSliceArray"]["asSlice"][1]["sNormal"] |> sPos -> [get(sPos, "dCor", 0), get(sPos, "dSag", 0), get(sPos, "dTra", 0)]
     info = Dict(
         :oversampling_factor => twix["Dicom"]["flReadoutOSFactor"],
         :fov_readout => twix["MeasYaps"]["sSpecPara"]["sVoI"]["dReadoutFOV"],
@@ -15,6 +17,7 @@ function extract_twix(twix)
         :n_frequency => twix["MeasYaps"]["sKSpace"]["lBaseResolution"],
         :n_phase_encoding => twix["MeasYaps"]["sKSpace"]["lPhaseEncodingLines"],
         :position => position,
+        :slice_normal => slice_normal,
     )
     calculate_additional_info!(info)
     return info
@@ -84,6 +87,8 @@ Circle(info) = Circle(nothing, info)
 function Base.getindex(c::Circle, s::Symbol)
     if haskey(c.info, s) # look in info
         c.info[s]
+    elseif s == :n_TI # TODO temporary fix
+        c[:n_TI_list][c[:circle]]
     elseif s == :part
         c[:part_order][c[:LIN]]
     elseif s == :circle

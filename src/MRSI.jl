@@ -1,6 +1,6 @@
 module MRSI
 
-using FFTW, Mmap
+using FFTW, Mmap, Rotations
 
 include("headers.jl")
 include("scaninfo.jl")

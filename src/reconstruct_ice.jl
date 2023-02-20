@@ -7,7 +7,8 @@ function reconstruct_ice(filename, type=:ONLINE)
     ## Info cheating
     info[:n_fid] = MRSI.calculate_additional_info(ScanInfo(filename, :ONLINE)[1][2])[:n_fid] # fine, is available in ICE
     info[:radii] = [radius_normalized(headers[findfirst(h -> info[:circle_order][h.dims[LIN]] == i, headers)], info) for i in 1:info[:max_n_circles]] # problem
-    info[:max_n_points_on_circle] = maximum([get_n_points_on_circle(h, info[:oversampling_factor]) for h in headers]) # TODO
+    info[:max_n_points_on_circle] = maximum([get_n_points_on_circle(h, info[:oversampling_factor]) for h in headers]) # can be corrected afterwards
+    info[:n_TI_list] = [maximum(h[:TI] for h in filter(h -> info[:circle_order][h.dims[LIN]] == i, headers)) for i in 1:info[:max_n_circles]] # problem in newADC
     ##
 
 
@@ -46,8 +47,9 @@ function get_circle(header_array, head, info)
 end
 
 function store!(c::Circle, h::ScanHeaderVD)
+    n_ti = c[:n_TI_list][c[:circle_order][h[:LIN]]] # temporary fix
     if isnothing(c.headers)
-        c.headers = [ScanHeaderVD[] for _ in 1:h[:n_TI]]
+        c.headers = [ScanHeaderVD[] for _ in 1:n_ti]
     end
     push!(c.headers[h[:TI]], h)
 end
