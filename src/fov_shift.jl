@@ -1,9 +1,6 @@
 function fov_shift!(slice, kspace_coordinates, info)
-    position = info[:position] # (coronal, sagital, transversal)
-    normal = info[:slice_normal]
-
-    R = rotation_between(normal, [0, 0, 1])
-    rotated_position = R * position
+    R = rotation_between(info[:slice_normal], [0, 0, 1])
+    rotated_position = R * info[:position] # (coronal, sagital, transversal)
 
     x_coordinates = real.(kspace_coordinates)
     y_coordinates = imag.(kspace_coordinates)

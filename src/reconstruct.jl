@@ -16,9 +16,8 @@ function read_scan_info(filename, type)
 
     ## Info cheating (obtained from all headers instead of streamed like in ICE)
     info[:n_fid] = calculate_fid(info, headers) # fine, is available in ICE
-    info[:radii] = [radius_normalized(headers[findfirst(h -> info[:circle_order][h.dims[LIN]] == i, headers)], info) for i in 1:info[:max_n_circles]] # problem
+    info[:radii] = [radius_normalized(headers[findfirst(h -> info[:circle_order][h.dims[LIN]] == i, headers)], info) for i in 1:info[:max_n_circles]] # problem, required for dcf
     info[:max_n_points_on_circle] = maximum([get_n_points_on_circle(h, info[:oversampling_factor]) for h in headers]) # can be corrected afterwards
-    info[:n_TI_list] = [maximum(h[:TI] for h in filter(h -> info[:circle_order][h.dims[LIN]] == i, headers)) for i in 1:info[:max_n_circles]] # problem in newADC
     ##
     return headers, info
 end
@@ -63,9 +62,11 @@ function get_circle(header_array, head, info)
 end
 
 function store!(c::Circle, h::ScanHeaderVD)
-    n_ti = c[:n_TI_list][c[:circle_order][h[:LIN]]] # temporary fix
     if isnothing(c.headers)
-        c.headers = [ScanHeaderVD[] for _ in 1:n_ti]
+        c.headers = [ScanHeaderVD[]]
+    end
+    while length(c.headers) < h[:TI]
+        push!(c.headers, ScanHeaderVD[])
     end
     push!(c.headers[h[:TI]], h)
 end

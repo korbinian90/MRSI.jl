@@ -8,7 +8,7 @@ function density_compensation!(data, info)
 end
 
 function calculate_effective_area_per_circle(info)
-    radii = copy(info[:radii]) ./ maximum(info[:radii])
+    radii = info[:radii] ./ maximum(info[:radii])
     push!(radii, 2radii[end] - radii[end-1]) # extrapolate one radius
 
     areas_mid = [areas_to_middle_of_circles(radii, i) for i in 1:length(info[:radii])]

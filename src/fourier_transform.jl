@@ -1,7 +1,6 @@
 """
     fourier_transform(kdata, kspace_coordinates, n_grid)
 Fourier transform from kspace to a slice. Can be one circle or whole slice
-
 """
 function fourier_transform(kdata, kspace_coordinates, n_grid)
     @assert length(kspace_coordinates) == size(kdata, 1)

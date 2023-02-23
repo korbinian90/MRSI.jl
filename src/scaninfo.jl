@@ -74,8 +74,8 @@ Circle(info) = Circle(nothing, info)
 function Base.getindex(c::Circle, s::Symbol)
     if haskey(c.info, s) # look in info
         c.info[s]
-    elseif s == :n_TI # TODO temporary fix
-        c[:n_TI_list][c[:circle]]
+    elseif s == :n_TI
+        length(c.headers)
     elseif s == :part
         c[:part_order][c[:LIN]] # only oldADC
     elseif s == :circle
