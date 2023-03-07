@@ -8,30 +8,37 @@ include("read_headers.jl")
 
 @testitem "MRSI.jl" begin
     f_old16 = "C:/ICE/virtualShare/mrsi/dats/dats1/meas_MID00175_FID80315_csi_fidesi_crt_OldADC_Test8_16x16.dat"
-    scaninfo = ScanInfo(f_old16, :ONLINE)
+    data_headers, info = read_scan_info(f_old16, :ONLINE)
+    image = MRSI.mmaped_image(info)
 
-    sliceinfo = first(scaninfo)
-    slice = open(f_old16) do io
-        read_slice(io, sliceinfo)
-    end
-    rearrange(slice, sliceinfo)
-
+    MRSI.read_and_reconstruct_image_per_circle!(image, data_headers, info)
+    MRSI.fft_slice_dim!(image)
 
 end
 
 @testitem "Fourier Transform" begin
     f_old16 = "C:/ICE/virtualShare/mrsi/dats/dats1/meas_MID00175_FID80315_csi_fidesi_crt_OldADC_Test8_16x16.dat"
-    scaninfo = ScanInfo(f_old16, :ONLINE)
-    n_grid = scaninfo[:n_frequency]
+    headers, info = read_scan_info(f_old16, :ONLINE)
 
-    sliceinfo = first(scaninfo)
-    slice = open(f_old16) do io
-        read_slice(io, sliceinfo)
+    all_circles = MRSI.initialize_header_storage(info)
+    for h in headers
+        MRSI.store!(all_circles, h, info)
     end
 
-    ordered_kspace = vcat(rearrange(slice, sliceinfo)...)
+    slice = 1
+    # reconstruct all circles of one slice in one fourier transform (MATLAB order)
+    kdata = vcat((MRSI.read_data(c) for c in all_circles[slice])...)
+    kspace_coordinates = vcat((MRSI.construct_circle_coordinates(c) for c in all_circles[slice])...)
+    image = MRSI.fourier_transform(kdata, kspace_coordinates, info[:n_frequency])
 
-    kspace_points = MRSI.read_kspace_coordinates(sliceinfo)
-    ft = fourier_transform(ordered_kspace, kspace_points, n_grid)
-    @test size(ft) == (16, 16, 840, 1) # (n_grid, n_grid, slice, n_fid, n_channels)
+    # reconstruct circle per circle (ICE order)
+    image2 = similar(image)
+    for c in all_circles[slice]
+        kdata = MRSI.read_data(c)
+        kspace_coordinates = MRSI.construct_circle_coordinates(c)
+        image2 .+= MRSI.fourier_transform(kdata, kspace_coordinates, info[:n_frequency])
+    end
+
+    @test size(image) == (16, 16, 840, 1) # (n_grid, n_grid, slice, n_fid, n_channels)
+    @test all(image .≈ image2)
 end

@@ -1,5 +1,18 @@
 const GYRO_MAGNETIC_RATIO_OVER_TWO_PI = 42.57747892; # value taken from MATLAB script read_ascconv.m
 
+function read_scan_info(filename, type)
+    checkVD(filename) || error("only implemented for VD files")
+    info = extract_twix(read_twix_protocol(filename))
+    info[:filename] = filename
+    headers = read_scan_headers(info)[type]
+
+    ## Info cheating (obtained from all headers instead of streamed like in ICE)
+    info[:radii] = [radius_normalized(headers[findfirst(h -> info[:circle_order][h.dims[LIN]] == i, headers)], info) for i in 1:info[:max_n_circles]] # problem, required for dcf
+    info[:max_n_points_on_circle] = maximum([get_n_points_on_circle(h, info[:oversampling_factor]) for h in headers]) # can be corrected afterwards
+    ##
+    return headers, info
+end
+
 function extract_twix(twix)
     info = Dict(
         :oversampling_factor => twix["Dicom"]["flReadoutOSFactor"],
@@ -9,6 +22,7 @@ function extract_twix(twix)
         :n_part => twix["MeasYaps"]["sKSpace"]["lPartitions"],
         :n_frequency => twix["MeasYaps"]["sKSpace"]["lBaseResolution"],
         :n_phase_encoding => twix["MeasYaps"]["sKSpace"]["lPhaseEncodingLines"],
+        :n_fid => twix["Meas"]["alICEProgramPara"][7],
         :position => pos_as_vector(twix["MeasYaps"]["sSliceArray"]["asSlice"][1], "sPosition"),
         :slice_normal => pos_as_vector(twix["MeasYaps"]["sSliceArray"]["asSlice"][1], "sNormal"),
     )
@@ -32,32 +46,20 @@ end
 
 # only for oldADC
 function calculate_part_order(n_part, max_n_circles)
-    part_max = n_part ÷ 2
-    circles_per_part = [calculate_n_circles_per_part(part_max, max_n_circles, i) for i in -part_max:part_max]
+    circles_per_part = calculate_n_circles_per_part(n_part, max_n_circles)
     part_order = vcat((repeat([i], n) for (i, n) in enumerate(circles_per_part))...)
     circle_order = vcat((1:c for c in circles_per_part)...)
     return (part_order, circle_order, circles_per_part)
 end
 
-function calculate_n_circles_per_part(part_max, max_n_circles, i)
+function calculate_n_circles_per_part(n_part, max_n_circles)
+    part_max = n_part ÷ 2
     if part_max == 0 # 2D
         return max_n_circles
     end
-    return max(2, Int(ceil(sqrt(max_n_circles^2 - (i * max_n_circles / part_max)^2))))
+    n_circles(part) = max(2, Int(ceil(sqrt(max_n_circles^2 - (part * max_n_circles / part_max)^2))))
+    return [n_circles(part) for part in -part_max:part_max]
 end
-
-
-function calculate_fid(info, headers)
-    max_adc_and_ti_header = argmax(h -> h[:adc] * h[:TI], headers)
-
-    n_adcs = max_adc_and_ti_header[:adc]
-    n_adc_points = max_adc_and_ti_header[:n_adc_points]
-    n_points_on_circle = get_n_points_on_circle(max_adc_and_ti_header, info[:oversampling_factor])
-    n_TI = max_adc_and_ti_header[:TI]
-
-    return get_n_fid(n_adc_points, n_adcs, n_TI, n_points_on_circle)
-end
-get_n_fid(n_adc_points, n_adcs, n_TI, n_points_on_circle) = round(Int, n_adc_points * n_adcs * n_TI / n_points_on_circle - 0.5) # why 0.5?
 
 function max_r(n_grid, fov_read)
     delta_gm = 1e6 / (fov_read * GYRO_MAGNETIC_RATIO_OVER_TWO_PI)
