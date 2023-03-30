@@ -2,18 +2,22 @@ const GYRO_MAGNETIC_RATIO_OVER_TWO_PI = 42.57747892; # value taken from MATLAB s
 
 function read_scan_info(filename, type)
     checkVD(filename) || error("only implemented for VD files")
-    info = extract_twix(read_twix_protocol(filename))
+    info = extract_twix(filename, type)
     info[:filename] = filename
     headers = read_scan_headers(info)[type]
 
     ## Info cheating (obtained from all headers instead of streamed like in ICE)
-    info[:radii] = [radius_normalized(headers[findfirst(h -> info[:circle_order][h.dims[LIN]] == i, headers)], info) for i in 1:info[:max_n_circles]] # problem, required for dcf
+    @show info[:radii] =  calculate_radii(headers, info) # problem, required for dcf
     info[:max_n_points_on_circle] = maximum([get_n_points_on_circle(h, info[:oversampling_factor]) for h in headers]) # can be corrected afterwards
     ##
     return headers, info
 end
 
-function extract_twix(twix)
+read_radii(headers, info) = [radius_normalized(headers[findfirst(h -> info[:circle_order][h.dims[LIN]] == i, headers)], info) for i in 1:info[:max_n_circles]]
+calculate_radii(headers, info) = collect(1:2:info[:n_frequency]) * radius_normalized(headers[findfirst(h -> info[:circle_order][h.dims[LIN]] == 1, headers)], info)
+
+function extract_twix(filename, type)
+    twix = read_twix_protocol(filename)
     info = Dict(
         :oversampling_factor => twix["Dicom"]["flReadoutOSFactor"],
         :fov_readout => twix["MeasYaps"]["sSpecPara"]["sVoI"]["dReadoutFOV"],
@@ -22,12 +26,22 @@ function extract_twix(twix)
         :n_part => twix["MeasYaps"]["sKSpace"]["lPartitions"],
         :n_frequency => twix["MeasYaps"]["sKSpace"]["lBaseResolution"],
         :n_phase_encoding => twix["MeasYaps"]["sKSpace"]["lPhaseEncodingLines"],
-        :n_fid => twix["Meas"]["alICEProgramPara"][7],
         :position => pos_as_vector(twix["MeasYaps"]["sSliceArray"]["asSlice"][1], "sPosition"),
         :slice_normal => pos_as_vector(twix["MeasYaps"]["sSliceArray"]["asSlice"][1], "sNormal"),
     )
+    if type == :PATREFSCAN
+        info[:n_fid] = twix["Meas"]["alICEProgramPara"][8]
+    else
+        info[:n_fid] = twix["Meas"]["alICEProgramPara"][7]
+    end
     calculate_twix_info!(info)
     return info
+end
+
+function calculate_twix_info!(info)
+    info[:max_n_circles] = info[:n_frequency] ÷ 2
+    info[:max_r] = max_r(info[:n_frequency], info[:fov_readout])
+    info[:part_order], info[:circle_order], info[:circles_per_part] = calculate_part_order(info[:n_part], info[:max_n_circles])
 end
 
 function pos_as_vector(entry, type)
@@ -36,12 +50,6 @@ function pos_as_vector(entry, type)
     else
         [0, 0, 0]
     end
-end
-
-function calculate_twix_info!(info)
-    info[:max_n_circles] = info[:n_frequency] ÷ 2
-    info[:max_r] = max_r(info[:n_frequency], info[:fov_readout])
-    info[:part_order], info[:circle_order], info[:circles_per_part] = calculate_part_order(info[:n_part], info[:max_n_circles])
 end
 
 # only for oldADC

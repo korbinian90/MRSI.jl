@@ -35,3 +35,10 @@ function reconstruct(c::Circle)
 
     return image
 end
+
+function full_reconstruct(file)
+    image = reconstruct(file)
+    refscan = reconstruct(file, :PATREFSCAN)
+    combined = coil_combine(image, refscan)
+    return combined
+end

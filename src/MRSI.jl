@@ -18,6 +18,8 @@ include("mmap.jl")
 include("reconstruct.jl")
 
 export reconstruct,
-    read_scan_info
+    read_scan_info,
+    coil_combine,
+    full_reconstruct
 
 end
