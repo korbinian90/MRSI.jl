@@ -8,7 +8,7 @@ function construct_circle_coordinates(xy::Complex, info)
     n = info[:n_points_on_circle]
     angle_increment = 2pi / n
     r = abs(xy)
-    angle_first_point = angle(xy) - pi / 2 # identical to matlab
+    angle_first_point = -angle(xy) - pi / 2 # identical to matlab
     phi = angle_first_point .- (0:n-1) * angle_increment
     coords = r .* exp.(im .* phi)
     return coords
