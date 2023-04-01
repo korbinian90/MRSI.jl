@@ -21,4 +21,5 @@ function read_first_kspace_coordinate_normalized(head::ScanHeaderVD, info)
 end
 parse_to_float(a::Int16, b::Int16) = a + b / 10_000
 
+radius_normalized(c::Circle) = radius_normalized(first(first(c.headers)), c)
 radius_normalized(head::ScanHeaderVD, info) = abs(read_first_kspace_coordinate_normalized(head, info))

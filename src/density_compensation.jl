@@ -1,17 +1,18 @@
 function density_compensation!(data, info)
-    areas = calculate_effective_area_per_circle(info)
+    areas = calculate_effective_area_per_circle(info[:radii])
     number_of_points_correction = points_on_circle_ratio(info)
 
-    dcf = (areas .* number_of_points_correction)
+    dcf = areas[info[:circle]] * number_of_points_correction
 
-    data .*= dcf[info[:circle]]
+    data .*= dcf
 end
 
-function calculate_effective_area_per_circle(info)
-    radii = info[:radii] ./ maximum(info[:radii])
+function calculate_effective_area_per_circle(radii)
+    n = length(radii)
+    radii = radii ./ maximum(radii)
     push!(radii, 2radii[end] - radii[end-1]) # extrapolate one radius
 
-    areas_mid = [areas_to_middle_of_circles(radii, i) for i in 1:length(info[:radii])]
+    areas_mid = [areas_to_middle_of_circles(radii, i) for i in 1:n]
     effective_areas = areas_mid .- [0, areas_mid[1:end-1]...]
 
     return effective_areas
@@ -24,4 +25,14 @@ end
 
 function points_on_circle_ratio(c::Circle)
     return c[:max_n_points_on_circle] ./ c[:n_points_on_circle]
+end
+
+function density_compensation_ice!(data, info)
+    radii = collect(range(1; step=2, length=info[:max_n_circles]))
+    areas = calculate_effective_area_per_circle(radii)
+    number_of_points_correction = 1 / info[:n_points_on_circle]
+
+    dcf = areas[info[:circle]] * number_of_points_correction
+    
+    data .*= dcf
 end

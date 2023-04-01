@@ -7,7 +7,7 @@ function read_scan_info(filename, type)
     headers = read_scan_headers(info)[type]
 
     ## Info cheating (obtained from all headers instead of streamed like in ICE)
-    @show info[:radii] =  calculate_radii(headers, info) # problem, required for dcf
+    info[:radii] =  read_radii(headers, info) # problem, required for dcf
     info[:max_n_points_on_circle] = maximum([get_n_points_on_circle(h, info[:oversampling_factor]) for h in headers]) # can be corrected afterwards
     ##
     return headers, info
