@@ -9,6 +9,7 @@ function reconstruct(filename, type=:ONLINE; kw...)
 
     read_and_reconstruct_image_per_circle!(image, data_headers, info; kw...)
     fft_slice_dim!(image)
+    image = reverse(image; dims=1) # LR flip
 
     return image
 end
@@ -29,6 +30,7 @@ function reconstruct(c::Circle; ice=false)
     kdata = read_data(c)
 
     fov_shift!(kdata, kspace_coordinates, c)
+    kdata = conj.(kdata)
     frequency_offset_correction!(kdata, c)
     
     if ice
