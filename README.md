@@ -1,8 +1,5 @@
 # MRSI
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://korbinian90.github.io/MRSI.jl/stable/)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://korbinian90.github.io/MRSI.jl/dev/)
-
 Work in progress package for CRT MRSI reconstruction with low RAM requirement.
 
 ## Install this package
