@@ -2,6 +2,16 @@
 
 Work in progress package for CRT MRSI reconstruction with low RAM requirement.
 
+## Implemented steps
+
+- Reading from Siemens DAT file
+- FOV Shift
+- Frequency Offset Correction
+- Density Compensation
+- Discrete Fourier Transform (from circles to cartesian)
+- Slice FFT
+- Coil combination with PATREFSCAN
+
 ## Install this package
 
 1. [Download](https://julialang.org/downloads/) and install a recent version of Julia (1.9+ recommended)
@@ -51,6 +61,8 @@ write_matfile(filename; name_combined=combined, n_frequency=info[:n_frequency], 
 
 ## Work with the source code
 
+This downloads the package to the `.julia/dev` directory, usually in `home` directory. The source code can be easily modified and used.
+
 ```julia
 import Pkg; Pkg.dev(url="https://github.com/korbinian90/MRSI.jl")
 using Revise # makes sure that changed code is immediately available in running session
@@ -59,8 +71,6 @@ using MRSI
 dat_file = "path-to-dat-file/file.dat"
 image = reconstruct(dat_file) # uses changed package
 ```
-
-This downloads the package to the `.julia/dev` directory, usually in `home` directory. The source code can be easily modified and used.
 
 ## Questions
 
