@@ -13,12 +13,8 @@ function read_scan_info(filename, type)
     return headers, info
 end
 
-read_radii(headers, info) = [radius_normalized(headers[findfirst(h -> info[:circle_order][h.dims[LIN]] == i, headers)], info) for i in 1:info[:max_n_circles]]
-calculate_radii(headers, info) = collect(1:2:info[:n_frequency]) * radius_normalized(headers[findfirst(h -> info[:circle_order][h.dims[LIN]] == 1, headers)], info)
-
-function extract_twix(filename, type)
-    twix = read_twix_protocol(filename)
-    info = Dict(
+function create_dict_from_twix(twix, type)
+    return Dict(
         :oversampling_factor => twix["Dicom"]["flReadoutOSFactor"],
         :fov_readout => twix["MeasYaps"]["sSpecPara"]["sVoI"]["dReadoutFOV"],
         :fov_phase => twix["MeasYaps"]["sSpecPara"]["sVoI"]["dPhaseFOV"],
@@ -28,20 +24,22 @@ function extract_twix(filename, type)
         :n_phase_encoding => twix["MeasYaps"]["sKSpace"]["lPhaseEncodingLines"],
         :position => pos_as_vector(twix["MeasYaps"]["sSliceArray"]["asSlice"][1], "sPosition"),
         :slice_normal => pos_as_vector(twix["MeasYaps"]["sSliceArray"]["asSlice"][1], "sNormal"),
+        :larmor_frequency => twix["MeasYaps"]["sTXSPEC"]["asNucleusInfo"][1]["lFrequency"],
+        :dwelltime => twix["MeasYaps"]["sRXSPEC"]["alDwellTime"][1],
+        :n_fid => get_fid(twix, type),
     )
-    if type == :PATREFSCAN
-        info[:n_fid] = twix["Meas"]["alICEProgramPara"][8]
-    else
-        info[:n_fid] = twix["Meas"]["alICEProgramPara"][7]
-    end
-    calculate_twix_info!(info)
-    return info
 end
 
-function calculate_twix_info!(info)
-    info[:max_n_circles] = info[:n_frequency] ÷ 2
-    info[:max_r] = max_r(info[:n_frequency], info[:fov_readout])
-    info[:part_order], info[:circle_order], info[:circles_per_part] = calculate_part_order(info[:n_part], info[:max_n_circles])
+function get_fid(twix, type)
+    n_fid = if type == :PATREFSCAN
+        twix["Meas"]["alICEProgramPara"][8]
+    else
+        twix["Meas"]["alICEProgramPara"][7]
+    end
+    if n_fid == 0 # fix for certain datasets
+        n_fid = twix["MeasYaps"]["sSpecPara"]["lVectorSize"]
+    end
+    return n_fid
 end
 
 function pos_as_vector(entry, type)
@@ -50,6 +48,22 @@ function pos_as_vector(entry, type)
     else
         [0, 0, 0]
     end
+end
+
+function calculate_twix_info!(info)
+    info[:max_n_circles] = info[:n_frequency] ÷ 2
+    info[:max_r] = max_r(info[:n_frequency], info[:fov_readout])
+    info[:part_order], info[:circle_order], info[:circles_per_part] = calculate_part_order(info[:n_part], info[:max_n_circles])
+end
+
+read_radii(headers, info) = [radius_normalized(headers[findfirst(h -> info[:circle_order][h.dims[LIN]] == i, headers)], info) for i in 1:info[:max_n_circles]]
+calculate_radii(headers, info) = collect(1:2:info[:n_frequency]) * radius_normalized(headers[findfirst(h -> info[:circle_order][h.dims[LIN]] == 1, headers)], info)
+
+function extract_twix(filename, type)
+    twix = read_twix_protocol(filename)
+    info = create_dict_from_twix(twix, type)
+    calculate_twix_info!(info)
+    return info
 end
 
 # only for oldADC
