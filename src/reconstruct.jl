@@ -3,13 +3,12 @@
     
 Reconstructs a SIEMENS dat file
 """
-function reconstruct(filename, type=:ONLINE; kw...)
+function reconstruct(filename, type=:ONLINE; datatype=ComplexF32, kw...)
     data_headers, info = read_scan_info(filename, type)
-    image = mmaped_image(info)
+    image = mmaped_image(info, datatype)
 
     read_and_reconstruct_image_per_circle!(image, data_headers, info; kw...)
     fft_slice_dim!(image)
-    image = reverse(image; dims=1) # LR flip
 
     return image
 end
@@ -47,5 +46,8 @@ function full_reconstruct(file; kw...)
     image = reconstruct(file; kw...)
     refscan = reconstruct(file, :PATREFSCAN; kw...)
     combined = coil_combine(image, refscan)
+
+    combined = reverse(combined; dims=1) # LR flip
+
     return combined
 end
