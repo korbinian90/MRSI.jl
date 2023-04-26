@@ -18,7 +18,7 @@ function read_and_reconstruct_image_per_circle!(image, headers, info; kw...)
     for head in headers
         circle = store!(headers_sorted_into_circles, head, info)
         if is_complete(circle)
-            image[:, :, circle[:part], :, :] .+= reconstruct(circle; kw...)
+            selectdim(image, 3, circle[:part]) .+= reconstruct(circle; kw...)
         end
     end
 end
@@ -30,7 +30,7 @@ function reconstruct(c::Circle; datatype, ice=false)
     fov_shift!(kdata, kspace_coordinates, c)
     kdata = conj.(kdata)
     frequency_offset_correction!(kdata, c)
-    
+
     if ice
         density_compensation_ice!(kdata, c)
     else

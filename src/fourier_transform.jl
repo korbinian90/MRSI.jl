@@ -11,13 +11,12 @@ function fourier_transform(kdata, kspace_coordinates, n_grid)
     return image
 end
 
-function calculate_dft_matrix(kspace_coordinates, n_grid)
-    datatype = eltype(kspace_coordinates)
+function calculate_dft_matrix(kspace_coordinates::AbstractArray{T}, n_grid) where T
     r_range = n_grid / 2 - 0.5
     rx = ry = -r_range:r_range
     ry = reshape(ry, 1, :)
     ks = reshape(kspace_coordinates, 1, 1, :)
-    f(rx, ry, k) = exp(datatype(im * -2pi * (rx * real(k) + ry * imag(k))))
+    f(rx, ry, k) = exp(T(im * -2pi * (rx * real(k) + ry * imag(k))))
     dft_matrix = f.(rx, ry, ks) # size: (n_grid, n_grid, n_kspace)
     return reshape(dft_matrix, n_grid * n_grid, :)
 end
