@@ -7,7 +7,7 @@ function reconstruct(filename, type=:ONLINE; datatype=ComplexF32, kw...)
     data_headers, info = read_scan_info(filename, type)
     image = mmaped_image(info, datatype)
 
-    read_and_reconstruct_image_per_circle!(image, data_headers, info; kw...)
+    read_and_reconstruct_image_per_circle!(image, data_headers, info; datatype, kw...)
     fft_slice_dim!(image)
 
     return image
@@ -24,10 +24,9 @@ function read_and_reconstruct_image_per_circle!(image, headers, info; kw...)
 end
 
 # Returns [n_freq, n_phase, n_points, n_channels]
-function reconstruct(c::Circle; ice=false)
-    kspace_coordinates = construct_circle_coordinates(c)
-    kdata = read_data(c)
-
+function reconstruct(c::Circle; datatype, ice=false)
+    kspace_coordinates = datatype.(construct_circle_coordinates(c))
+    kdata = read_data(c, datatype)
     fov_shift!(kdata, kspace_coordinates, c)
     kdata = conj.(kdata)
     frequency_offset_correction!(kdata, c)

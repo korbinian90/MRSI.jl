@@ -1,5 +1,5 @@
-function read_data(c::Circle)
-    data = zeros(ComplexF64, c[:n_points_on_circle], c[:n_fid], c[:n_channels])
+function read_data(c::Circle, datatype)
+    data = zeros(datatype, c[:n_points_on_circle], c[:n_fid], c[:n_channels])
     open(c[:filename]) do io
         for (TI, heads) in enumerate(c.headers)
             data[:, TI:c[:n_TI]:end, :] .= read_reshape_one_TI(io, heads, c)
