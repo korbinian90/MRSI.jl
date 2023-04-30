@@ -9,10 +9,7 @@ function store!(header_array, header, info)
 end
 
 function get_circle(header_array, header, info)
-    num = header.dims[LIN]
-    circle = info[:circle_order][num]
-    part = info[:part_order][num]
-    return header_array[part][circle]
+    return header_array[part_from_one(header, info)][header[:circle]]
 end
 
 function store!(c::Circle, h::ScanHeaderVD)
