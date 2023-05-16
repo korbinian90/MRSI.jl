@@ -36,9 +36,6 @@ image = reconstruct(dat_file)
 
 # only extract info from the scan
 headers, info = read_scan_info(dat_file, :ONLINE)
-
-# with coil combination using the :PATREFSCAN
-combined = full_reconstruct(dat_file)
 ```
 
 Saving to NIfTI
@@ -54,9 +51,17 @@ savenii(angle.(combined), "path-to-file/phase.nii")
 Saving as MAT file
 
 ```julia
-import Pkg; Pkg.add("MATLAB")
+import Pkg; Pkg.add("MATLAB") # first time install of package
 using MATLAB
 write_matfile(filename; name_combined=combined, n_frequency=info[:n_frequency], ...)  # writes all variables given in the keyword argument list to a MAT file
+```
+
+## Options
+To see the options of the `reconstruct` functions, use the help menu of the julia REPL
+
+```julia-repl
+julia> using MRSI
+julia> ?reconstruct
 ```
 
 ## Work with the source code
