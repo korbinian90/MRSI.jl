@@ -91,6 +91,8 @@ function Base.getindex(c::Circle, s::Symbol)
     h = first(first(c.headers))
     if haskey(c.info, s) # look in info
         c.info[s]
+    elseif s == :n_TI
+        length(c.headers) # for old dats, not possible in ICE
     elseif s == :part
         part_from_one(h, c)
     elseif s == :n_points_on_circle
