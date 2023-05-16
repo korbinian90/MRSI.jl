@@ -1,3 +1,9 @@
+"""
+    headers = initialize_header_storage(info)
+
+Returs empty Circle array of size [nPart][nCircles]
+Each Circle can store all headers corresponding to that part and circle.
+"""
 function initialize_header_storage(info)
     return [[Circle(info) for _ in 1:info[:circles_per_part][i]] for i in 1:info[:n_part]]
 end
@@ -20,10 +26,4 @@ function store!(c::Circle, h::ScanHeaderVD)
         push!(c.headers, ScanHeaderVD[])
     end
     push!(c.headers[h[:TI]], h)
-end
-
-function is_complete(c::Circle)
-    required_length = c[:n_fid] * c[:n_points_on_circle] ÷ c[:n_TI]
-    is_full(heads) = length(heads) * c[:n_adc_points] ≥ required_length
-    return all(is_full.(c.headers))
 end

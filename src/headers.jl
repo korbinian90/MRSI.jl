@@ -1,6 +1,8 @@
+# This enum definition enables the usage of the dimension code for accessing the dimension elements
 @enum DIM COL = 1 LIN = 3 AVE = 4 SLI = 5 PAR = 6 ECO = 7 PHS = 8 REP = 9 SET = 10 SEG = 11 IDA = 12 IDB = 13 IDC = 14 IDD = 15 IDE = 16
 Base.to_index(d::DIM) = Int(d)
 
+# Definition of Headers as structs and how to read them
 struct HeaderInfo
     n_scans
     meas_id

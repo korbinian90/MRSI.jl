@@ -19,7 +19,6 @@ include("reconstruct.jl")
 
 export reconstruct,
     read_scan_info,
-    coil_combine,
-    full_reconstruct
+    coil_combine
 
 end

@@ -1,10 +1,10 @@
 function frequency_offset_correction!(data, info; dim=2)
-    freq = calculate_frequency(info)
-    freq = to_dim(freq, dim)
+    freq = calculate_frequency(info) # size: (nFid,)
+    freq = to_dim(freq, dim) # size: (1,nFid)
 
-    timeoffset = 0:info[:n_points_on_circle]-1
+    timeoffset = 0:info[:n_points_on_circle]-1 # size: (nPoints,)
 
-    correction = exp.(2pi * im .* freq .* timeoffset)
+    correction = exp.(2pi * im .* freq .* timeoffset) # size: (nPoints,nFid)
 
     kdata = ifftshift(ifft(data, dim), dim)
     kdata .*= correction

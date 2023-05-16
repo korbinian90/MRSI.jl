@@ -1,5 +1,5 @@
 function coil_combine(data, refscan)
-    coil_weight = conj(refscan[:, :, :, [1], :]) # refscan - only use one timepoint and one dim6
+    coil_weight = conj(refscan[:, :, :, [1], :]) # refscan - only use first timepoint
     combined = combine(data, coil_weight)
     return combined .* scaling(coil_weight)
 end

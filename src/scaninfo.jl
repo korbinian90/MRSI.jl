@@ -6,9 +6,9 @@ function read_scan_info(filename, type)
     info[:filename] = filename
     headers = read_scan_headers(info)[type]
 
-    ## Info cheating (obtained from all headers instead of streamed like in ICE)
-    info[:radii] =  read_radii(headers, info) # problem, required for dcf
-    info[:max_n_points_on_circle] = maximum([get_n_points_on_circle(h, info[:oversampling_factor]) for h in headers]) # can be corrected afterwards
+    ## Info obtained after having seen all headers (not possible in ICE)
+    info[:radii] = read_radii(headers, info)
+    info[:max_n_points_on_circle] = maximum([get_n_points_on_circle(h, info[:oversampling_factor]) for h in headers])
     ##
     return headers, info
 end
@@ -91,10 +91,8 @@ function Base.getindex(c::Circle, s::Symbol)
     h = first(first(c.headers))
     if haskey(c.info, s) # look in info
         c.info[s]
-    elseif s == :n_TI
-        length(c.headers)
     elseif s == :part
-         part_from_one(h, c)
+        part_from_one(h, c)
     elseif s == :n_points_on_circle
         get_n_points_on_circle(h, c.info[:oversampling_factor])
     elseif s == :fid_points_for_TI
@@ -110,7 +108,7 @@ function Base.getindex(h::ScanHeaderVD, s::Symbol)
     if s == :n_adc_points
         h.dims[COL]
     elseif s == :n_TI
-        h.dims[IDD] - 1
+        h.ice_param[9]
     elseif s == :TI
         h.dims[IDB]
     elseif s == :adc

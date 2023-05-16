@@ -27,6 +27,7 @@ function points_on_circle_ratio(c::Circle)
     return c[:max_n_points_on_circle] ./ c[:n_points_on_circle]
 end
 
+# Uses calculated radii instead of values read from the headers
 function density_compensation_ice!(data, info)
     radii = collect(range(1; step=2, length=info[:max_n_circles]))
     areas = calculate_effective_area_per_circle(radii)
