@@ -1,6 +1,6 @@
 module MRSI
 
-using FFTW, Mmap, Rotations
+using FFTW, Mmap, Rotations, LinearAlgebra
 
 include("headers.jl")
 include("scaninfo.jl")
@@ -16,6 +16,8 @@ include("fourier_transform.jl")
 include("coil_combination.jl")
 include("mmap.jl")
 include("reconstruct.jl")
+include("lipid_decon/lipid_suppression_L2.jl")
+include("lipid_decon/lipid_suppression_L1.jl")
 
 export reconstruct,
     read_scan_info,
