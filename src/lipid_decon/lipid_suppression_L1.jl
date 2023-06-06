@@ -3,7 +3,7 @@ function lipid_decontamination_L1(csi, lipid_basis, brain_mask, n_loops=5; args.
     FT0 = FT(csi, FT_mask)
     for i in 1:n_loops
         println("Decontamination Loop $i of $n_loops. Norm Results: ")
-        csi = lipid_suppression(csi, lipid_basis, brain_mask, FT_mask, FT0; args...)
+        csi = lipid_suppression_L1(csi, lipid_basis, brain_mask, FT_mask, FT0; args...)
     end
     return csi
 end
@@ -12,7 +12,7 @@ FT(x, mask) = 1 / eltype(x).(sqrt(length(x))) * fftshift(fft(ifftshift(x))) .* m
 FT_adjoint(x) = eltype(x).(sqrt(length(x))) * fftshift(ifft(ifftshift(x)))
 lipid_xfm(spectrum, lipid_basis) = lipid_basis * conj.(spectrum)
 
-function lipid_suppression(x0::AbstractArray{Complex{T}}, lipid_basis, brain_mask, FT_mask, FT0; maximum_iterations=10, maximum_line_iterations=150, gradient_tolerance=1f-30, alpha=0.01f0, beta=0.6f0, t0=1, p_norm=1, xfm_weight=1f-3, L1_smooth=1f-15) where T
+function lipid_suppression_L1(x0::AbstractArray{Complex{T}}, lipid_basis, brain_mask, FT_mask, FT0; maximum_iterations=10, maximum_line_iterations=150, gradient_tolerance=1f-30, alpha=0.01f0, beta=0.6f0, t0=1, p_norm=1, xfm_weight=1f-3, L1_smooth=1f-15) where T
     x = copy(x0)
     g0 = w_gradient(x0, FT0, lipid_basis, FT_mask, brain_mask, xfm_weight)
     dx = -g0

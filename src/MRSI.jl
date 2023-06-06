@@ -18,9 +18,11 @@ include("mmap.jl")
 include("reconstruct.jl")
 include("lipid_decon/lipid_suppression_L2.jl")
 include("lipid_decon/lipid_suppression_L1.jl")
+include("lipid_decon/lipid_mask.jl")
 
 export reconstruct,
     read_scan_info,
-    coil_combine
+    coil_combine,
+    lipid_mask_from_mrsi
 
 end
