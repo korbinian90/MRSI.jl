@@ -1,5 +1,5 @@
 """
-    image = reconstruct(filename; combine=:auto, datatype=ComplexF32, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true, ice=false, old_headers=false)
+    image = reconstruct(filename; combine=:auto, datatype=ComplexF32, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true, ice=false, old_headers=false, mmap=true)
 
 Reconstructs a SIEMENS dat file
 
@@ -7,6 +7,7 @@ Coil combine is performed only for AC datasets.
 Set combine to `false`|`true` to force coil combination (including normalization by the patrefscan). 
 Set ice to `true` to use calculated radii for density compensation instead of reading them from the headers. 
 Set `old_headers` to `true` for older dat files with part and circle stored in LIN
+Set `mmap` to `false` to compute in RAM or a filename or folder for storing the temporary result array.
 
     reconstruct(filename, type; options...)
 
@@ -25,9 +26,9 @@ function reconstruct(file; combine=:auto, kw...)
     return combined
 end
 
-function reconstruct(filename, type; datatype=ComplexF32, old_headers=false, kw...)
+function reconstruct(filename, type; datatype=ComplexF32, old_headers=false, mmap=true, kw...)
     data_headers, info = read_scan_info(filename, type, old_headers)
-    image = mmaped_image(info, datatype)
+    image = mmaped_image(info, datatype, mmap)
     circle_array = sort_headers(data_headers, info)
 
     for circle in vcat(circle_array...)
