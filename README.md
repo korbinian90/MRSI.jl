@@ -1,6 +1,6 @@
 # MRSI
 
-Work in progress package for CRT MRSI reconstruction with low RAM requirement.
+Package for CRT MRSI reconstruction with low RAM requirement.
 
 ## Implemented steps
 
@@ -11,6 +11,7 @@ Work in progress package for CRT MRSI reconstruction with low RAM requirement.
 - Discrete Fourier Transform (from circles to cartesian)
 - Slice FFT
 - Coil combination with PATREFSCAN
+- Regularization (L1 and L2)
 
 ## Install this package
 
@@ -34,6 +35,8 @@ using MRSI
 dat_file = "path-to-dat-file/file.dat"
 image = reconstruct(dat_file)
 
+image = reconstruct(dat_file; old_headers=true) # for old sequences with non-standardized header entries
+
 # only extract info from the scan
 headers, info = read_scan_info(dat_file, :ONLINE)
 ```
@@ -41,7 +44,7 @@ headers, info = read_scan_info(dat_file, :ONLINE)
 Saving to NIfTI
 
 ```julia
-import Pkg; Pkg.add("MriResearchTools") # installs package, large package, takes a minute or two
+import Pkg; Pkg.add("MriResearchTools") # installs package, many dependencies, takes a minute or two
 using MriResearchTools
 
 savenii(abs.(combined), "path-to-file/mag.nii")
@@ -52,8 +55,8 @@ Saving as MAT file
 
 ```julia
 import Pkg; Pkg.add("MATLAB") # first time install of package
-using MATLAB
-write_matfile(filename; name_combined=combined, n_frequency=info[:n_frequency], ...)  # writes all variables given in the keyword argument list to a MAT file
+using MATLAB # automatically finds and uses installed MATLAB
+write_matfile(filename; mat_var_name=combined, n_frequency=info[:n_frequency], ...)  # writes all variables given in the keyword argument list to a MAT file
 ```
 
 ## Options

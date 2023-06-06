@@ -1,11 +1,12 @@
 """
-    image = reconstruct(filename; combine=:auto, datatype=ComplexF32, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true, ice=false)
+    image = reconstruct(filename; combine=:auto, datatype=ComplexF32, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true, ice=false, old_headers=false)
 
 Reconstructs a SIEMENS dat file
 
 Coil combine is performed only for AC datasets. 
 Set combine to `false`|`true` to force coil combination (including normalization by the patrefscan). 
 Set ice to `true` to use calculated radii for density compensation instead of reading them from the headers. 
+Set `old_headers` to `true` for older dat files with part and circle stored in LIN
 
     reconstruct(filename, type; options...)
 
@@ -24,8 +25,8 @@ function reconstruct(file; combine=:auto, kw...)
     return combined
 end
 
-function reconstruct(filename, type; datatype=ComplexF32, kw...)
-    data_headers, info = read_scan_info(filename, type)
+function reconstruct(filename, type; datatype=ComplexF32, old_headers=false, kw...)
+    data_headers, info = read_scan_info(filename, type, old_headers)
     image = mmaped_image(info, datatype)
     circle_array = sort_headers(data_headers, info)
 
@@ -46,7 +47,7 @@ function sort_headers(headers, info)
 end
 
 # Returns [n_freq, n_phase, n_points, n_channels]
-function reconstruct(c::Circle; datatype, ice=false, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true)
+function reconstruct(c::Circle; datatype=ComplexF32, ice=false, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true)
     kspace_coordinates = datatype.(construct_circle_coordinates(c))
     kdata = read_data(c, datatype)
 

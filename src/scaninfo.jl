@@ -1,10 +1,14 @@
 const GYRO_MAGNETIC_RATIO_OVER_TWO_PI = 42.57747892; # value taken from MATLAB script read_ascconv.m
 
-function read_scan_info(filename, type)
+function read_scan_info(filename, type, old_headers=false)
     checkVD(filename) || error("only implemented for VD files")
     info = extract_twix(filename, type)
     info[:filename] = filename
     headers = read_scan_headers(info)[type]
+
+    if old_headers
+        fix_old_headers!(headers, info)
+    end
 
     ## Info obtained after having seen all headers (not possible in ICE)
     info[:radii] = read_radii(headers, info)
@@ -36,7 +40,7 @@ function get_fid(twix, type)
     else
         twix["Meas"]["alICEProgramPara"][7]
     end
-    if n_fid == 0 # fix for certain datasets
+    if n_fid == 0 # fix for certain old datasets
         n_fid = twix["MeasYaps"]["sSpecPara"]["lVectorSize"]
     end
     return n_fid
@@ -123,3 +127,29 @@ function Base.getindex(h::ScanHeaderVD, s::Symbol)
 end
 get_n_points_on_circle(h::ScanHeaderVD, oversampling_factor) = round(Int, max(h.dims[IDC] - 1, h.ice_param[6]) * oversampling_factor)
 part_from_one(h::ScanHeaderVD, info) = h[:SEG] + info[:n_part] ÷ 2 + 1
+
+function fix_old_headers!(headers, info)
+    info[:n_fid] = calculate_n_fid(headers, info)
+    circle_order = vcat((1:c for c in info[:circles_per_part])...)
+    part_order = vcat((repeat([i], n) for (i, n) in enumerate(info[:circles_per_part]))...)
+    
+    for h in headers
+        oldlin = h.dims[LIN]
+        h.dims[LIN] = circle_order[oldlin]
+        h.dims[SEG] = part_order[oldlin] - info[:n_part] ÷ 2
+    end
+end
+
+function calculate_n_fid(headers, info)
+    heads = filter(h -> h[:circle] == 1, headers)
+    h1 = heads[1]
+
+    n_adcs = maximum(h[:adc] for h in heads)
+    n_TI = maximum(h[:TI] for h in heads)
+    n_points_on_circle = get_n_points_on_circle(h1, info[:oversampling_factor])
+
+    n_fid = round(Int, h1[:n_adc_points] *  n_adcs / n_points_on_circle * n_TI - 0.5)
+    lcm = 6
+    n_fid = floor(Int, n_fid / lcm) * lcm
+    return n_fid
+end
