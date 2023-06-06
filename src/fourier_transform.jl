@@ -27,3 +27,19 @@ function fft_slice_dim!(image::AbstractArray{T,5}) where {T}
     end
 end
 fft_slice_dim(image; dims=3) = fftshift(fft(ifftshift(image, dims), dims), dims)
+
+function fourier_transform_nfft(kdata, kspace_coordinates, n_grid)
+    @assert length(kspace_coordinates) == size(kdata, 1)
+    data_matrix = reshape(kdata, length(kspace_coordinates), :)
+    J, N = length(kspace_coordinates), n_grid
+    
+    k = transpose(hcat(real.(kspace_coordinates), imag.(kspace_coordinates)))
+
+    p = adjoint(plan_nfft(k, (n_grid, n_grid)))
+    image = similar(data_matrix, n_grid, n_grid, size(data_matrix, 2))
+    for i in axes(data_matrix, 2)
+        image[:,:,i] = fftshift(p * data_matrix[:,i], [1,2])
+    end
+    image = reshape(image, n_grid, n_grid, size(kdata)[2:end]...) # one slice
+    return image
+end

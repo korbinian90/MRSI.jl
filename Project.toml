@@ -7,6 +7,7 @@ version = "0.1.0"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Mmap = "a63ad114-7e13-5084-954f-fe012c677804"
+NFFT = "efe261a4-0d2b-5849-be55-fc731d526b0d"
 Rotations = "6038ab10-8711-5258-84ad-4b1120ba62dc"
 
 [compat]
