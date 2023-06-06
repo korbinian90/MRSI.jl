@@ -1,4 +1,4 @@
-construct_circle_coordinates(c::Circle) = construct_circle_coordinates(first(first(c.headers)), c)
+construct_circle_coordinates(c::Circle) = construct_circle_coordinates(first(first(first(c.headers))), c)
 function construct_circle_coordinates(header::ScanHeaderVD, info)
     xy = read_first_kspace_coordinate_normalized(header, info)
     return construct_circle_coordinates(xy, info)

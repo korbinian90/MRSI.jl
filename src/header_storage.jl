@@ -18,12 +18,24 @@ function get_circle(header_array, header, info)
     return header_array[part_from_one(header, info)][header[:circle]]
 end
 
+# store headers as [TI][adc][average]
 function store!(c::Circle, h::ScanHeaderVD)
     if isnothing(c.headers)
-        c.headers = [ScanHeaderVD[]]
+        c.headers = [[ScanHeaderVD[]]]
     end
     while length(c.headers) < h[:TI]
-        push!(c.headers, ScanHeaderVD[])
+        push!(c.headers, [ScanHeaderVD[]])
     end
-    push!(c.headers[h[:TI]], h)
+    while length(c.headers[h[:TI]]) < h[:adc]
+        push!(c.headers[h[:TI]], ScanHeaderVD[])
+    end
+    push!(c.headers[h[:TI]][h[:adc]], h)
+end
+
+function sort_headers(headers, info)
+    headers_sorted_into_circles = initialize_header_storage(info)
+    for head in headers
+        store!(headers_sorted_into_circles, head, info)
+    end
+    return headers_sorted_into_circles
 end

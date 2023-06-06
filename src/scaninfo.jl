@@ -92,7 +92,7 @@ mutable struct Circle
 end
 Circle(info) = Circle(nothing, info)
 function Base.getindex(c::Circle, s::Symbol)
-    h = first(first(c.headers))
+    h = first(first(first(c.headers)))
     if haskey(c.info, s) # look in info
         c.info[s]
     elseif s == :n_TI

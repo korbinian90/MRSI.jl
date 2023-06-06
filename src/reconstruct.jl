@@ -39,14 +39,6 @@ function reconstruct(filename, type; datatype=ComplexF32, old_headers=false, mma
     return image
 end
 
-function sort_headers(headers, info)
-    headers_sorted_into_circles = initialize_header_storage(info)
-    for head in headers
-        store!(headers_sorted_into_circles, head, info)
-    end
-    return headers_sorted_into_circles
-end
-
 # Returns [n_freq, n_phase, n_points, n_channels]
 function reconstruct(c::Circle; datatype=ComplexF32, ice=false, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true)
     kspace_coordinates = datatype.(construct_circle_coordinates(c))
