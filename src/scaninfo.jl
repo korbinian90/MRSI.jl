@@ -31,6 +31,7 @@ function create_dict_from_twix(twix, type)
         :larmor_frequency => twix["MeasYaps"]["sTXSPEC"]["asNucleusInfo"][1]["lFrequency"],
         :dwelltime => twix["MeasYaps"]["sRXSPEC"]["alDwellTime"][1],
         :n_fid => get_fid(twix, type),
+        :vec_size => twix["MeasYaps"]["sSpecPara"]["lVectorSize"],
     )
 end
 
@@ -39,9 +40,6 @@ function get_fid(twix, type)
         twix["Meas"]["alICEProgramPara"][8]
     else
         twix["Meas"]["alICEProgramPara"][7]
-    end
-    if n_fid == 0 # fix for certain old datasets
-        n_fid = twix["MeasYaps"]["sSpecPara"]["lVectorSize"]
     end
     return n_fid
 end

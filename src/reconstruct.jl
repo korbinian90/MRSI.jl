@@ -14,16 +14,20 @@ Set `mmap` to `false` to compute in RAM or a filename or folder for storing the 
 Reconstruction without coil combination.
 `type` can be :ONLINE or :PATREFSCAN
 """
-function reconstruct(file; combine=:auto, kw...)
+function reconstruct(file; combine=:auto, zero_fill=false, kw...)
     image = reconstruct(file, :ONLINE; kw...)
 
-    if combine == false || combine == :auto && size(image, 5) == 1
-        return image
+    if combine == true || combine == :auto && size(image, 5) > 1
+        refscan = reconstruct(file, :PATREFSCAN; kw...)
+        image = coil_combine(image, refscan)
+    end
+    
+    if zero_fill
+        vec_size = extract_twix(file, :ONLINE)[:vec_size]
+        image = PaddedView(0, image, (size(image)[1:3]..., vec_size, size(image,5)))
     end
 
-    refscan = reconstruct(file, :PATREFSCAN; kw...)
-    combined = coil_combine(image, refscan)
-    return combined
+    return image
 end
 
 function reconstruct(filename, type; datatype=ComplexF32, old_headers=false, mmap=true, kw...)

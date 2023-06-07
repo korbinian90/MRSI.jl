@@ -1,6 +1,6 @@
 module MRSI
 
-using FFTW, Mmap, Rotations, LinearAlgebra
+using FFTW, Mmap, Rotations, LinearAlgebra, PaddedViews
 
 include("headers.jl")
 include("scaninfo.jl")
