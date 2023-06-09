@@ -35,8 +35,12 @@ function reconstruct(filename, type; datatype=ComplexF32, old_headers=false, mma
     image = mmaped_image(info, datatype, mmap)
     circle_array = sort_headers(data_headers, info)
 
-    for circle in vcat(circle_array...)
-        selectdim(image, 3, circle[:part]) .+= reconstruct(circle; datatype, kw...)
+    lk = ReentrantLock()
+    Threads.@threads for circle in vcat(circle_array...)
+        rec = reconstruct(circle; datatype, kw...)
+        lock(lk) do
+            selectdim(image, 3, circle[:part]) .+= rec
+        end
     end
     fft_slice_dim!(image)
 
