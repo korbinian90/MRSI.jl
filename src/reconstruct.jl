@@ -36,7 +36,7 @@ function reconstruct(filename, type; datatype=ComplexF32, old_headers=false, mma
     circle_array = sort_headers(data_headers, info)
 
     lk = ReentrantLock()
-    Threads.@threads for circle in vcat(circle_array...)
+    Threads.@threads for circle in ProgressBar(vcat(circle_array...), unit=" Circle")
         rec = reconstruct(circle; datatype, kw...)
         lock(lk) do
             selectdim(image, 3, circle[:part]) .+= rec
