@@ -1,5 +1,8 @@
 const GYRO_MAGNETIC_RATIO_OVER_TWO_PI = 42.57747892; # value taken from MATLAB script read_ascconv.m
 
+## TWIX info
+##############################
+
 function read_scan_info(filename, type, old_headers=false)
     checkVD(filename) || error("only implemented for VD files")
     info = extract_twix(filename, type)
@@ -82,6 +85,9 @@ function max_r(n_grid, fov_read)
     max_r = delta_gm * n_grid / 2
     return max_r
 end
+
+## Header Info
+##############################
 
 # Headers for one circle (adcs accumulated)
 mutable struct Circle
