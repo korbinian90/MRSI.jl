@@ -1,5 +1,5 @@
 """
-    image = reconstruct(filename; combine=:auto, datatype=ComplexF32, ice=false, old_headers=false, mmap=true, lipid_decon=false, lipid_mask, brain_mask, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true)
+    csi = reconstruct(filename; combine=:auto, datatype=ComplexF32, ice=false, old_headers=false, mmap=true, lipid_decon=false, lipid_mask, brain_mask, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true)
 
 Reconstructs a SIEMENS dat file
 
@@ -12,35 +12,35 @@ Set `lipid_decon` to `:L1` or `:L2` to perform lipid decontamination.
 For lipid decontamination, pass the filenames of Float32 raw files via `lipid_mask` and `brain_mask`.
 Alternatively, use `lipid_mask=:from_spectrum`. If nothing is provided, a full mask is used.
 
-    image, info = reconstruct(filename, type; options...)
+    csi, info = reconstruct(filename, type; options...)
 
 Reconstruction without coil combination.
 `type` can be `:ONLINE` or `:PATREFSCAN`
 `info` is a `Dict` containing scan information.
 """
 function reconstruct(file; combine=:auto, zero_fill=false, lipid_decon=nothing, kw...)
-    image, info = reconstruct(file, :ONLINE; kw...)
+    csi, info = reconstruct(file, :ONLINE; kw...)
 
-    if combine == true || combine == :auto && size(image, 5) > 1
+    if combine == true || combine == :auto && size(csi, 5) > 1
         refscan, _ = reconstruct(file, :PATREFSCAN; kw...)
-        image = coil_combine(image, refscan)
+        csi = coil_combine(csi, refscan)
     end
 
     if !isnothing(lipid_decon)
-        mask, lipid_mask = get_masks(image, info; kw...)
-        lipid_suppression!(image, mask, lipid_mask; type=lipid_decon)
+        mask, lipid_mask = get_masks(csi, info; kw...)
+        lipid_suppression!(csi, mask, lipid_mask; type=lipid_decon)
     end
 
     if zero_fill
-        image = PaddedView(0, image, (size(image)[1:3]..., info[:vec_size], size(image,5)))
+        csi = PaddedView(0, csi, (size(csi)[1:3]..., info[:vec_size], size(csi,5)))
     end
 
-    return image
+    return csi
 end
 
 function reconstruct(filename, type; datatype=ComplexF32, old_headers=false, mmap=true, kw...)
     data_headers, info = read_scan_info(filename, type, old_headers)
-    image = mmaped_image(info, datatype, mmap)
+    csi = mmaped_image(info, datatype, mmap)
     circle_array = sort_headers(data_headers, info)
 
     lk = ReentrantLock()
@@ -48,12 +48,12 @@ function reconstruct(filename, type; datatype=ComplexF32, old_headers=false, mma
         rec = reconstruct(circle; datatype, kw...)
         lock(lk) do
             # This needs to be guarded with a lock because of threaded addition
-            selectdim(image, 3, circle[:part]) .+= rec
+            selectdim(csi, 3, circle[:part]) .+= rec
         end
     end
-    fft_slice_dim!(image)
+    fft_slice_dim!(csi)
 
-    return image, info
+    return csi, info
 end
 
 # Returns [n_freq, n_phase, n_points, n_channels]
@@ -73,9 +73,9 @@ function reconstruct(c::Circle; datatype=ComplexF32, ice=false, do_fov_shift=tru
         end
     end
 
-    image = fourier_transform(kdata, kspace_coordinates, c[:n_frequency])
+    csi = fourier_transform(kdata, kspace_coordinates, c[:n_frequency])
 
-    image = reverse(image; dims=1) # LR flip
+    csi = reverse(csi; dims=1) # LR flip
 
-    return image
+    return csi
 end
