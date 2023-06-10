@@ -15,3 +15,22 @@ function ppm_to_vecsize_point(info, ppm, center_around_ppm=4.65)
     vecsize_point = -1e-6 * (ppm - center_around_ppm) * info[:larmor_frequency] / step_frequency + offset
     return round(Int, vecsize_point)
 end
+
+function get_masks(csi, info; brain_mask=nothing, lipid_mask=nothing, kw...)
+    sz = size(csi)[1:3]
+    brain = read_raw(brain_mask, sz) .!= 0
+    lipid = if lipid_mask == :from_spectrum
+        lipid_mask_from_mrsi(csi, info)
+    else
+        read_raw(lipid_mask, sz) .!= 0
+    end
+    return brain, lipid
+end
+
+function read_raw(fn, sz; datatype=Float32)
+    raw = ones(datatype, sz)
+    if !isnothing(fn)
+        read!(fn, raw)
+    end
+    return raw
+end

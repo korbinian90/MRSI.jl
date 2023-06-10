@@ -1,30 +1,38 @@
 """
-    image = reconstruct(filename; combine=:auto, datatype=ComplexF32, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true, ice=false, old_headers=false, mmap=true)
+    image = reconstruct(filename; combine=:auto, datatype=ComplexF32, ice=false, old_headers=false, mmap=true, lipid_decon=false, lipid_mask, brain_mask, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true)
 
 Reconstructs a SIEMENS dat file
 
-Coil combine is performed only for AC datasets. 
-Set combine to `false`|`true` to force coil combination (including normalization by the patrefscan). 
-Set ice to `true` to use calculated radii for density compensation instead of reading them from the headers. 
+Coil combine is performed automatically for AC datasets. 
+Set `combine` to `false`|`true` to force coil combination (including normalization by the patrefscan). 
+Set `ice` to `true` to use calculated radii for density compensation instead of reading them from the headers. 
 Set `old_headers` to `true` for older dat files with part and circle stored in LIN
 Set `mmap` to `false` to compute in RAM or a filename or folder for storing the temporary result array.
+Set `lipid_decon` to `:L1` or `:L2` to perform lipid decontamination. 
+For lipid decontamination, pass the filenames of Float32 raw files via `lipid_mask` and `brain_mask`.
+Alternatively, use `lipid_mask=:from_spectrum`. If nothing is provided, a full mask is used.
 
-    reconstruct(filename, type; options...)
+    image, info = reconstruct(filename, type; options...)
 
 Reconstruction without coil combination.
-`type` can be :ONLINE or :PATREFSCAN
+`type` can be `:ONLINE` or `:PATREFSCAN`
+`info` is a `Dict` containing scan information.
 """
-function reconstruct(file; combine=:auto, zero_fill=false, kw...)
-    image = reconstruct(file, :ONLINE; kw...)
+function reconstruct(file; combine=:auto, zero_fill=false, lipid_decon=nothing, kw...)
+    image, info = reconstruct(file, :ONLINE; kw...)
 
     if combine == true || combine == :auto && size(image, 5) > 1
-        refscan = reconstruct(file, :PATREFSCAN; kw...)
+        refscan, _ = reconstruct(file, :PATREFSCAN; kw...)
         image = coil_combine(image, refscan)
     end
-    
+
+    if !isnothing(lipid_decon)
+        mask, lipid_mask = get_masks(image, info; kw...)
+        lipid_suppression!(image, mask, lipid_mask; type=lipid_decon)
+    end
+
     if zero_fill
-        vec_size = extract_twix(file, :ONLINE)[:vec_size]
-        image = PaddedView(0, image, (size(image)[1:3]..., vec_size, size(image,5)))
+        image = PaddedView(0, image, (size(image)[1:3]..., info[:vec_size], size(image,5)))
     end
 
     return image
@@ -39,16 +47,17 @@ function reconstruct(filename, type; datatype=ComplexF32, old_headers=false, mma
     Threads.@threads for circle in ProgressBar(vcat(circle_array...), unit=" Circle")
         rec = reconstruct(circle; datatype, kw...)
         lock(lk) do
+            # This needs to be guarded with a lock because of threaded addition
             selectdim(image, 3, circle[:part]) .+= rec
         end
     end
     fft_slice_dim!(image)
 
-    return image
+    return image, info
 end
 
 # Returns [n_freq, n_phase, n_points, n_channels]
-function reconstruct(c::Circle; datatype=ComplexF32, ice=false, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true)
+function reconstruct(c::Circle; datatype=ComplexF32, ice=false, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true, kw...)
     kspace_coordinates = datatype.(construct_circle_coordinates(c))
     kdata = read_data(c, datatype)
 
