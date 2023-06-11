@@ -1,6 +1,6 @@
 module MRSI
 
-using FFTW, Mmap, Rotations, LinearAlgebra, PaddedViews, ProgressBars
+using FFTW, Mmap, Rotations, LinearAlgebra, PaddedViews, ProgressMeter
 
 include("headers.jl")
 include("scaninfo.jl")
@@ -22,6 +22,7 @@ include("lipid_decon/lipid_mask.jl")
 
 export reconstruct,
     read_scan_info,
+    extract_twix,
     coil_combine,
     lipid_mask_from_mrsi
 

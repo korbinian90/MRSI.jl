@@ -32,7 +32,7 @@ function reconstruct(file; combine=:auto, zero_fill=false, lipid_decon=nothing, 
     end
 
     if zero_fill
-        csi = PaddedView(0, csi, (size(csi)[1:3]..., info[:vec_size], size(csi,5)))
+        csi = PaddedView(0, csi, (size(csi)[1:3]..., info[:vec_size], size(csi, 5)))
     end
 
     return csi
@@ -43,12 +43,16 @@ function reconstruct(filename, type; datatype=ComplexF32, old_headers=false, mma
     csi = mmaped_image(info, datatype, mmap)
     circle_array = sort_headers(data_headers, info)
 
+    p = Progress(sum(length.(circle_array)))
     lk = ReentrantLock()
-    Threads.@threads for circle in ProgressBar(vcat(circle_array...), unit=" Circle")
-        rec = reconstruct(circle; datatype, kw...)
-        lock(lk) do
-            # This needs to be guarded with a lock because of threaded addition
-            selectdim(csi, 3, circle[:part]) .+= rec
+    for part in circle_array
+        Threads.@threads for circle in part
+            rec = reconstruct(circle; datatype, kw...)
+            lock(lk) do
+                # This needs to be guarded with a lock because of threaded addition
+                selectdim(csi, 3, circle[:part]) .+= rec
+            end
+            next!(p)
         end
     end
     fft_slice_dim!(csi)
@@ -61,9 +65,15 @@ function reconstruct(c::Circle; datatype=ComplexF32, ice=false, do_fov_shift=tru
     kspace_coordinates = datatype.(construct_circle_coordinates(c))
     kdata = read_data(c, datatype)
 
-    if do_fov_shift; fov_shift!(kdata, kspace_coordinates, c) end
-    if conj_in_beginning; kdata = conj.(kdata) end
-    if do_freq_cor; frequency_offset_correction!(kdata, c) end
+    if do_fov_shift
+        fov_shift!(kdata, kspace_coordinates, c)
+    end
+    if conj_in_beginning
+        kdata = conj.(kdata)
+    end
+    if do_freq_cor
+        frequency_offset_correction!(kdata, c)
+    end
 
     if do_dens_comp
         if ice
