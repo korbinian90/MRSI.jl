@@ -1,5 +1,5 @@
 function fov_shift!(circle, kspace_coordinates, info)
-    R = rotation_between(info[:slice_normal], [0, 0, 1])
+    R = rotation_between(Rotations.SVector{3}(info[:slice_normal]), Rotations.SVector{3}([0, 0, 1]))
     rotated_position = R * info[:position] # (coronal, sagital, transversal)
 
     x_coordinates = real.(kspace_coordinates)
