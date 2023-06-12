@@ -67,7 +67,7 @@ function objective(FT_x::AbstractArray{Complex{T}}, FT_dx, x, dx, t, FT0, mask, 
     G = zero(T)
     
     if xfm_weight > 0
-        for J in CartesianIndices(mask)
+        Threads.@threads for J in CartesianIndices(mask)
             if mask[J]
                 x_update = x[J, :] + t * dx[J, :]
                 Dx = lipid_xfm(x_update, lipid_basis)
@@ -97,7 +97,7 @@ end
 
 function lipid_gradient(x, lipid_basis, mask)
     grad = similar(x)
-    for J in CartesianIndices(mask)
+    Threads.@threads for J in CartesianIndices(mask)
         if mask[J]
             Dx = lipid_xfm(x[J, :], lipid_basis)
             grad[J, :] = sign.(Dx)' * lipid_basis
