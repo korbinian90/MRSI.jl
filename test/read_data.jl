@@ -1,10 +1,10 @@
 using TestItemRunner
 @testitem "read_data" begin
     file = "$(@__DIR__)/data/test.dat"
-    headers, info = read_scan_info(file, :ONLINE)
+    info = read_scan_info(file)[:ONLINE]
 
     all_circles = MRSI.initialize_header_storage(info)
-    for h in headers
+    for h in info[:headers]
         MRSI.store!(all_circles, h, info)
     end
     kdata = [vcat((MRSI.read_data(c, ComplexF32) for c in part_circles)...) for part_circles in all_circles]
