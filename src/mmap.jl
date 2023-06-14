@@ -9,7 +9,7 @@ function mmaped_image(info, datatype, arg)
     end
 
     name = get_name(arg)
-    return mmap(name, Array{datatype,5}, sz)
+    return mmap(name, Array{datatype,5}, sz; shared=false)
 end
 
 get_name(::Bool) = tempname() # arg == true

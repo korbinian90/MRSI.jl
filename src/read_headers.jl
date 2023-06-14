@@ -1,6 +1,6 @@
-function read_scan_headers(info)
+function read_scan_headers(filename, n_channels)
     scan_headers = Dict()
-    open(info[:filename]) do io
+    open(filename) do io
         seek_to_first_scan_header!(io)
         while true
             scan = read(io, ScanHeaderVD)
@@ -8,7 +8,7 @@ function read_scan_headers(info)
                 break
             end
             store_header!(scan_headers, scan)
-            seek_to_next_header!(io, scan.data_position, info[:n_channels])
+            seek_to_next_header!(io, scan.data_position, n_channels)
         end
     end
     return scan_headers

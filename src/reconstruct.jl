@@ -11,6 +11,7 @@ Set `mmap` to `false` to compute in RAM or a filename or folder for storing the 
 Set `lipid_decon` to `:L1` or `:L2` to perform lipid decontamination. 
 For lipid decontamination, pass the filenames of Float32 raw files via `lipid_mask` and `brain_mask`.
 Alternatively, use `lipid_mask=:from_spectrum`. If nothing is provided, a full mask is used.
+Set settings for lipid decontamination: `L2_beta=0.1f0`, `L1_n_loops=5`
 
     csi, info = reconstruct(filename, type; options...)
 
@@ -18,30 +19,31 @@ Reconstruction without coil combination.
 `type` can be `:ONLINE` or `:PATREFSCAN`
 `info` is a `Dict` containing scan information.
 """
-function reconstruct(file; combine=:auto, zero_fill=false, lipid_decon=nothing, kw...)
-    csi, info = reconstruct(file, :ONLINE; kw...)
+function reconstruct(file::AbstractString; combine=:auto, zero_fill=false, lipid_decon=nothing, old_headers=false, kw...)
+    scan_info = read_scan_info(file, old_headers)
+    csi = reconstruct(scan_info[:ONLINE]; kw...)
 
     if combine == true || combine == :auto && size(csi, 5) > 1
-        refscan, _ = reconstruct(file, :PATREFSCAN; kw...)
+        refscan = reconstruct(scan_info[:PATREFSCAN]; kw...)
         csi = coil_combine(csi, refscan)
     end
 
     if !isnothing(lipid_decon)
-        mask, lipid_mask = get_masks(csi, info; kw...)
-        lipid_suppression!(csi, mask, lipid_mask; type=lipid_decon)
+        mask, lipid_mask = get_masks(csi, scan_info[:ONLINE]; kw...)
+        lipid_suppression!(csi, mask, lipid_mask; type=lipid_decon, kw...)
     end
 
     if zero_fill
-        csi = PaddedView(0, csi, (size(csi)[1:3]..., info[:vec_size], size(csi, 5)))
+        vec_size = scan_info[:ONLINE][:vec_size]
+        csi = PaddedView(0, csi, (size(csi)[1:3]..., vec_size, size(csi, 5)))
     end
 
     return csi
 end
 
-function reconstruct(filename, type; datatype=ComplexF32, old_headers=false, mmap=true, kw...)
-    data_headers, info = read_scan_info(filename, type, old_headers)
+function reconstruct(info::Dict; datatype=ComplexF32, mmap=true, kw...)
     csi = mmaped_image(info, datatype, mmap)
-    circle_array = sort_headers(data_headers, info)
+    circle_array = sort_headers(info[:headers], info)
 
     p = Progress(sum(length.(circle_array)))
     lk = ReentrantLock()
@@ -55,9 +57,10 @@ function reconstruct(filename, type; datatype=ComplexF32, old_headers=false, mma
             next!(p)
         end
     end
+
     fft_slice_dim!(csi)
 
-    return csi, info
+    return csi
 end
 
 # Returns [n_freq, n_phase, n_points, n_channels]

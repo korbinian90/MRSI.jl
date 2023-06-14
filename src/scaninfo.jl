@@ -3,21 +3,28 @@ const GYRO_MAGNETIC_RATIO_OVER_TWO_PI = 42.57747892; # value taken from MATLAB s
 ## TWIX info
 ##############################
 
-function read_scan_info(filename, type, old_headers=false)
+function read_scan_info(filename, old_headers=false)
+    scan_info = Dict{Symbol, Any}()
     checkVD(filename) || error("only implemented for VD files")
-    info = extract_twix(filename, type)
-    info[:filename] = filename
-    headers = read_scan_headers(info)[type]
+    
+    n_channels = get_n_channels(filename)
+    headers = read_scan_headers(filename, n_channels)
 
-    if old_headers
-        fix_old_headers!(headers, info)
+    for type in [:ONLINE, :PATREFSCAN]
+        scan_info[type] = info = extract_twix(filename, type)
+        info[:headers] = headers[type]
+        info[:filename] = filename
+        
+        if old_headers
+            fix_old_headers!(info)
+        end
+
+        ## Info obtained after having seen all headers (not possible in ICE)
+        info[:radii] = read_radii(info)
+        info[:max_n_points_on_circle] = get_max_points_on_circle(info)
+        ##
     end
-
-    ## Info obtained after having seen all headers (not possible in ICE)
-    info[:radii] = read_radii(headers, info)
-    info[:max_n_points_on_circle] = maximum([get_n_points_on_circle(h, info[:oversampling_factor]) for h in headers])
-    ##
-    return headers, info
+    return scan_info
 end
 
 function create_dict_from_twix(twix, type)
@@ -61,8 +68,10 @@ function calculate_twix_info!(info)
     info[:circles_per_part] = calculate_n_circles_per_part(info[:n_part], info[:max_n_circles])
 end
 
-read_radii(headers, info) = [radius_normalized(headers[findfirst(h -> h[:circle] == i, headers)], info) for i in 1:info[:max_n_circles]]
-calculate_radii(headers, info) = collect(1:2:info[:n_frequency]) * radius_normalized(headers[findfirst(h -> h[:circle] == 1, headers)], info)
+get_n_channels(filename) = extract_twix(filename, :ONLINE)[:n_channels]
+read_radii(info) = [radius_normalized(info[:headers][findfirst(h -> h[:circle] == i, info[:headers])], info) for i in 1:info[:max_n_circles]]
+calculate_radii(info) = collect(1:2:info[:n_frequency]) * radius_normalized(headers[findfirst(h -> h[:circle] == 1, headers)], info)
+get_max_points_on_circle(info) = maximum([get_n_points_on_circle(h, info[:oversampling_factor]) for h in info[:headers]])
 
 function extract_twix(filename, type)
     twix = read_twix_protocol(filename)
@@ -132,20 +141,20 @@ end
 get_n_points_on_circle(h::ScanHeaderVD, oversampling_factor) = round(Int, max(h.dims[IDC] - 1, h.ice_param[6]) * oversampling_factor)
 part_from_one(h::ScanHeaderVD, info) = h[:SEG] + info[:n_part] ÷ 2 + 1
 
-function fix_old_headers!(headers, info)
-    info[:n_fid] = calculate_n_fid(headers, info)
+function fix_old_headers!(info)
+    info[:n_fid] = calculate_n_fid(info)
     circle_order = vcat((1:c for c in info[:circles_per_part])...)
     part_order = vcat((repeat([i], n) for (i, n) in enumerate(info[:circles_per_part]))...)
     
-    for h in headers
+    for h in info[:headers]
         oldlin = h.dims[LIN]
         h.dims[LIN] = circle_order[oldlin]
         h.dims[SEG] = part_order[oldlin] - info[:n_part] ÷ 2
     end
 end
 
-function calculate_n_fid(headers, info)
-    heads = filter(h -> h[:circle] == 1, headers)
+function calculate_n_fid(info)
+    heads = filter(h -> h[:circle] == 1, info[:headers])
     h1 = heads[1]
 
     n_adcs = maximum(h[:adc] for h in heads)
