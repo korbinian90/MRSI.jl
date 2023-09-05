@@ -11,11 +11,10 @@ struct HeaderInfo
     meas_length
 end
 function Base.read(io::IO, ::Type{HeaderInfo})
-    first = read(io, UInt32)
+    skip = read(io, UInt32)
     n_scans = read(io, UInt32)
     meas_id = read(io, UInt32)
     file_id = read(io, UInt32)
-    n_scans = n_scans
     meas_offset = zeros(Int, n_scans)
     meas_length = zeros(Int, n_scans)
     for i in 1:n_scans

@@ -4,7 +4,7 @@ function read_scan_headers(filename, n_channels)
         seek_to_first_scan_header!(io)
         while true
             scan = read(io, ScanHeaderVD)
-            if scan.mask[1] # signals ACQEND
+            if scan.type == :ACQEND
                 break
             end
             store_header!(scan_headers, scan)
@@ -48,7 +48,9 @@ function get_scan_mask(bytes)
 end
 
 function scan_info(mask)
-    if mask[26]
+    if mask[1]
+        return :ACQEND
+    elseif mask[26]
         return :NOISADJSCAN
     elseif mask[24]
         return :PATREFANDIMASCAN
@@ -56,8 +58,6 @@ function scan_info(mask)
         return :PATREFSCAN
     elseif mask[4]
         return :ONLINE
-    elseif mask[1]
-        return :ACQEND
     end
     return :OTHER
 end

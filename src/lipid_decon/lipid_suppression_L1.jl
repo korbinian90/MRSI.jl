@@ -9,7 +9,7 @@ function lipid_decontamination_L1(csi, lipid_basis, brain_mask, n_loops=5; args.
 end
 
 FT(x, mask) = 1 / eltype(x).(sqrt(length(x))) * fftshift(fft(ifftshift(x))) .* mask
-FT_adjoint(x) = eltype(x).(sqrt(length(x))) * fftshift(ifft(ifftshift(x)))
+FT_adjoint(x) = eltype(x).(sqrt(length(x))) * ifftshift(ifft(fftshift(x)))
 lipid_xfm(spectrum, lipid_basis) = lipid_basis * conj.(spectrum)
 
 function lipid_suppression_L1(x0::AbstractArray{Complex{T}}, lipid_basis, brain_mask, FT_mask, FT0; maximum_iterations=10, maximum_line_iterations=150, gradient_tolerance=1f-30, alpha=0.01f0, beta=0.6f0, t0=1, p_norm=1, xfm_weight=1f-3, L1_smooth=1f-15) where T

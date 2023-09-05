@@ -6,7 +6,7 @@ function frequency_offset_correction!(data, info; dim=2)
 
     correction = exp.(2pi * im .* freq .* timeoffset) # size: (nPoints,nFid)
 
-    kdata = ifftshift(ifft(data, dim), dim)
+    kdata = ifftshift(ifft(data, dim), dim) # TODO should be FFT here?
     kdata .*= correction
     data .= fft(fftshift(kdata, dim), dim)
 end

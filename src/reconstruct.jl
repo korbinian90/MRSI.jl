@@ -30,6 +30,7 @@ function reconstruct(file::AbstractString; combine=:auto, zero_fill=false, lipid
 
     if !isnothing(lipid_decon)
         mask, lipid_mask = get_masks(csi, scan_info[:ONLINE]; kw...)
+        savenii(lipid_mask, "lipid_mask", raw"D:\MRSI\tmp")
         lipid_suppression!(csi, mask, lipid_mask; type=lipid_decon, kw...)
     end
 

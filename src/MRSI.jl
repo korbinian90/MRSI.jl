@@ -1,6 +1,6 @@
 module MRSI
 
-using FFTW, Mmap, Rotations, LinearAlgebra, PaddedViews, ProgressMeter
+using FFTW, Mmap, Rotations, LinearAlgebra, PaddedViews, ProgressMeter, MriResearchTools
 
 include("headers.jl")
 include("scaninfo.jl")
