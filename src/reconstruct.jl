@@ -45,16 +45,12 @@ function reconstruct(info::Dict; datatype=ComplexF32, mmap=true, kw...)
     csi = mmaped_image(info, datatype, mmap)
     circle_array = sort_headers(info[:headers], info)
 
-    p = Progress(sum(length.(circle_array)))
-    lk = ReentrantLock()
+    p = Progress(sum(length.(circle_array))) # Progress bar
     for part in circle_array
-        Threads.@threads for circle in part
+        for circle in part
             rec = reconstruct(circle; datatype, kw...)
-            lock(lk) do
-                # This needs to be guarded with a lock because of threaded addition
-                selectdim(csi, 3, circle[:part]) .+= rec
-            end
-            next!(p)
+            selectdim(csi, 3, circle[:part]) .+= rec
+            next!(p) # Progress bar
         end
     end
 
