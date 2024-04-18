@@ -38,6 +38,7 @@ function create_dict_from_twix(twix, type)
         :n_phase_encoding => twix["MeasYaps"]["sKSpace"]["lPhaseEncodingLines"],
         :position => pos_as_vector(twix["MeasYaps"]["sSliceArray"]["asSlice"][1], "sPosition"),
         :slice_normal => pos_as_vector(twix["MeasYaps"]["sSliceArray"]["asSlice"][1], "sNormal"),
+        :in_plane_rotation => get(twix["MeasYaps"]["sSliceArray"]["asSlice"][1], "dInPlaneRot", 0), # defaults to 0 if dInPlaneRot is not present
         :larmor_frequency => twix["MeasYaps"]["sTXSPEC"]["asNucleusInfo"][1]["lFrequency"],
         :dwelltime => twix["MeasYaps"]["sRXSPEC"]["alDwellTime"][1],
         :n_fid => get_fid(twix, type),
