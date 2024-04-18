@@ -19,13 +19,13 @@ Reconstruction without coil combination.
 `type` can be `:ONLINE` or `:PATREFSCAN`
 `info` is a `Dict` containing scan information.
 """
-function reconstruct(file::AbstractString; combine=:auto, zero_fill=false, lipid_decon=nothing, old_headers=false, kw...)
+function reconstruct(file::AbstractString; time_point=5, combine=:auto, zero_fill=false, lipid_decon=nothing, old_headers=false, kw...)
     scan_info = read_scan_info(file, old_headers)
     csi = reconstruct(scan_info[:ONLINE]; kw...)
 
     if combine == true || combine == :auto && size(csi, 5) > 1
         refscan = reconstruct(scan_info[:PATREFSCAN]; kw...)
-        csi = coil_combine(csi, refscan)
+        csi = coil_combine(csi, refscan; time_point)
     end
 
     if !isnothing(lipid_decon)
