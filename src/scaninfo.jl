@@ -10,7 +10,7 @@ function read_scan_info(filename, old_headers=false)
     n_channels = get_n_channels(filename)
     headers = read_scan_headers(filename, n_channels)
 
-    for type in [:ONLINE, :PATREFSCAN]
+    for type in [:ONLINE, :PATREFSCAN, :NOISADJSCAN]
         scan_info[type] = info = extract_twix(filename, type)
         info[:headers] = headers[type]
         info[:filename] = filename
