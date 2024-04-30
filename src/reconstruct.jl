@@ -23,8 +23,8 @@ function reconstruct(file::AbstractString; time_point=5, combine=:auto, do_noise
     scan_info = read_scan_info(file, old_headers)
 
     if do_noise_decorrelation
-        kw = Dict(kw...) # required to modify
-        kw[:noise_matrix_cholesky] = noise_decorrelation(scan_info[:NOISADJSCAN])
+        kw = Dict{Symbol, Any}(kw...) # required to modify kw
+        kw[:noise_matrix_cholesky] = noise_decorrelation(scan_info)
     end
 
     csi = reconstruct(scan_info[:ONLINE]; kw...)
@@ -49,7 +49,7 @@ end
 
 function reconstruct(info::Dict; datatype=ComplexF32, mmap=true, kw...)
     csi = mmaped_image(info, datatype, mmap)
-    circle_array = sort_headers(info[:headers], info)
+    circle_array = sort_into_circles(info[:headers], info)
 
     p = Progress(sum(length.(circle_array))) # Progress bar
     for part in circle_array
