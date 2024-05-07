@@ -19,8 +19,14 @@ Reconstruction without coil combination.
 `type` can be `:ONLINE` or `:PATREFSCAN`
 `info` is a `Dict` containing scan information.
 """
-function reconstruct(file::AbstractString; time_point=5, combine=:auto, zero_fill=false, lipid_decon=nothing, old_headers=false, kw...)
+function reconstruct(file::AbstractString; time_point=5, combine=:auto, do_noise_decorrelation=false, zero_fill=false, lipid_decon=nothing, old_headers=false, kw...)
     scan_info = read_scan_info(file, old_headers)
+
+    if do_noise_decorrelation
+        kw = Dict{Symbol, Any}(kw...) # required to modify kw
+        kw[:noise_matrix_cholesky] = noise_decorrelation(scan_info)
+    end
+
     csi = reconstruct(scan_info[:ONLINE]; kw...)
 
     if combine == true || combine == :auto && size(csi, 5) > 1
@@ -43,7 +49,7 @@ end
 
 function reconstruct(info::Dict; datatype=ComplexF32, mmap=true, kw...)
     csi = mmaped_image(info, datatype, mmap)
-    circle_array = sort_headers(info[:headers], info)
+    circle_array = sort_into_circles(info[:headers], info)
 
     p = Progress(sum(length.(circle_array))) # Progress bar
     for part in circle_array
@@ -60,9 +66,9 @@ function reconstruct(info::Dict; datatype=ComplexF32, mmap=true, kw...)
 end
 
 # Returns [n_freq, n_phase, n_points, n_channels]
-function reconstruct(c::Circle; datatype=ComplexF32, ice=false, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true, kw...)
+function reconstruct(c::Circle; noise_matrix_cholesky=nothing, datatype=ComplexF32, ice=false, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true, kw...)
     kspace_coordinates = datatype.(construct_circle_coordinates(c))
-    kdata = read_data(c, datatype)
+    kdata = read_data(c, datatype, noise_matrix_cholesky)
 
     if do_fov_shift
         fov_shift!(kdata, kspace_coordinates, c)
