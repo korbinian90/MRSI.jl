@@ -4,7 +4,7 @@ function noise_decorrelation(scan_info)
     noise_correlation = calculate_noise_correlation(noise)
 
     noise_matrix_cholesky = cholesky(noise_correlation * noise_scaling_factor(scan_info) / 2).U
-    
+
     return noise_matrix_cholesky
 end
 
@@ -17,7 +17,9 @@ function calculate_noise_correlation(data, start_at_point=19)
     return correlation
 end
 
+# This is not required for the combined scan, since it is applied in refscan and image scan and is divided out in the end
 function noise_scaling_factor(scan_info)
+    return 1
     header = header_first_circle(scan_info)
 
     noise_dwelltime = 10000 # currently hard-coded since it is not written in sequence

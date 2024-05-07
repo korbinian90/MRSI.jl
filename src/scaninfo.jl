@@ -40,13 +40,13 @@ function create_dict_from_twix(twix, type)
         :slice_normal => pos_as_vector(twix["MeasYaps"]["sSliceArray"]["asSlice"][1], "sNormal"),
         :in_plane_rotation => get(twix["MeasYaps"]["sSliceArray"]["asSlice"][1], "dInPlaneRot", 0), # defaults to 0 if dInPlaneRot is not present
         :larmor_frequency => twix["MeasYaps"]["sTXSPEC"]["asNucleusInfo"][1]["lFrequency"],
-        :dwelltime => twix["MeasYaps"]["sRXSPEC"]["alDwellTime"][1],
-        :n_fid => get_fid(twix, type),
+        :dwelltime => twix["MeasYaps"]["sRXSPEC"]["alDwellTime"][1], # TODO: This might not be the currently used place
+        :n_fid => get_n_fid(twix, type),
         :vec_size => twix["MeasYaps"]["sSpecPara"]["lVectorSize"],
     )
 end
 
-function get_fid(twix, type)
+function get_n_fid(twix, type)
     n_fid = if type == :PATREFSCAN
         twix["Meas"]["alICEProgramPara"][8]
     else
@@ -143,7 +143,6 @@ get_n_points_on_circle(h::ScanHeaderVD, oversampling_factor) = round(Int, max(h.
 part_from_one(h::ScanHeaderVD, info) = h[:SEG] + info[:n_part] ÷ 2 + 1
 
 function fix_old_headers!(info)
-    info[:n_fid] = calculate_n_fid(info)
     circle_order = vcat((1:c for c in info[:circles_per_part])...)
     part_order = vcat((repeat([i], n) for (i, n) in enumerate(info[:circles_per_part]))...)
     
@@ -152,6 +151,7 @@ function fix_old_headers!(info)
         h.dims[LIN] = circle_order[oldlin]
         h.dims[SEG] = part_order[oldlin] - info[:n_part] ÷ 2
     end
+    info[:n_fid] = calculate_n_fid(info)
 end
 
 function calculate_n_fid(info)
