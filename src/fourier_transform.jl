@@ -2,13 +2,27 @@
     fourier_transform(kdata, kspace_coordinates, n_grid)
 Fourier transform from kspace to a slice. Can be one circle or whole slice
 """
-function fourier_transform(kdata, kspace_coordinates, n_grid)
-    @assert length(kspace_coordinates) == size(kdata, 1)
-    data_matrix = reshape(kdata, length(kspace_coordinates), :)
-    dft_matrix = calculate_dft_matrix(kspace_coordinates, n_grid)
+function fourier_transform(kdata::AbstractArray{T}, c::Circle) where T
+    n_grid = c[:n_frequency]
+    dft_matrix = get_dft_matrix(c, n_grid, T)
+    data_matrix = reshape(kdata, size(dft_matrix, 2), :)
     image_matrix = dft_matrix * data_matrix
     image = reshape(image_matrix, n_grid, n_grid, size(kdata)[2:end]...) # one slice
     return image
+end
+
+"""
+    get_dft_matrix(circle::Circle, n_grid)
+Retrieves the DFT matrix for a given circle. Memoizes the matrix for the same circle
+"""
+function get_dft_matrix(circle::Circle, n_grid, datatype)
+    xy = datatype(read_first_kspace_coordinate_normalized(circle))
+    return calculate_dft_matrix(xy, circle[:n_points_on_circle], n_grid)    
+end
+
+@memoize function calculate_dft_matrix(xy::Complex, n_points_on_circle, n_grid)
+    kspace_coordinates = construct_circle_coordinates(xy, n_points_on_circle)
+    return calculate_dft_matrix(kspace_coordinates, n_grid)
 end
 
 function calculate_dft_matrix(kspace_coordinates::AbstractArray{T}, n_grid) where T

@@ -67,11 +67,10 @@ end
 
 # Returns [n_freq, n_phase, n_points, n_channels]
 function reconstruct(c::Circle; noise_matrix_cholesky=nothing, datatype=ComplexF32, ice=false, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true, kw...)
-    kspace_coordinates = datatype.(construct_circle_coordinates(c))
     kdata = read_data(c, datatype, noise_matrix_cholesky)
 
     if do_fov_shift
-        fov_shift!(kdata, kspace_coordinates, c)
+        fov_shift!(kdata, c)
     end
     if conj_in_beginning
         kdata = conj.(kdata)
@@ -88,7 +87,7 @@ function reconstruct(c::Circle; noise_matrix_cholesky=nothing, datatype=ComplexF
         end
     end
 
-    csi = fourier_transform(kdata, kspace_coordinates, c[:n_frequency])
+    csi = fourier_transform(kdata, c)
 
     csi = reverse(csi; dims=1) # LR flip
 

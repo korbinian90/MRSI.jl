@@ -71,7 +71,6 @@ end
 
 get_n_channels(filename) = extract_twix(filename, :ONLINE)[:n_channels]
 read_radii(info) = [radius_normalized(info[:headers][findfirst(h -> h[:circle] == i, info[:headers])], info) for i in 1:info[:max_n_circles]]
-calculate_radii(info) = collect(1:2:info[:n_frequency]) * radius_normalized(headers[findfirst(h -> h[:circle] == 1, headers)], info)
 get_max_points_on_circle(info) = maximum([get_n_points_on_circle(h, info[:oversampling_factor]) for h in info[:headers]])
 
 function extract_twix(filename, type)
