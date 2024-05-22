@@ -1,5 +1,5 @@
-function fov_shift!(kdata::AbstractArray{T}, info::Circle) where T
-    kspace_coordinates = T.(construct_circle_coordinates(info))
+function fov_shift!(kdata::AbstractArray{T}, info::Circle, gradient_delay_us) where T
+    kspace_coordinates = T.(construct_circle_coordinates(info, gradient_delay_us))
 
     R1 = rotation_between(info[:slice_normal], [0, 0, 1])
     R2 = RotZ(-info[:in_plane_rotation])

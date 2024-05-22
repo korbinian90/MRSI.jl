@@ -8,7 +8,8 @@ Set `combine` to `false`|`true` to force coil combination (including normalizati
 Set `ice` to `true` to use calculated radii for density compensation instead of reading them from the headers. 
 Set `old_headers` to `true` for older dat files with part and circle stored in LIN
 Set `mmap` to `false` to compute in RAM or a filename or folder for storing the temporary result array.
-Set `lipid_decon` to `:L1` or `:L2` to perform lipid decontamination. 
+Set `lipid_decon` to `:L1` or `:L2` to perform lipid decontamination.
+Set `gradient_delay` to [[x1,y1], [x2,y2], [x3,y3]] to apply a gradient delay correction
 For lipid decontamination, pass the filenames of Float32 raw files via `lipid_mask` and `brain_mask`.
 Alternatively, use `lipid_mask=:from_spectrum`. If nothing is provided, a full mask is used.
 Set settings for lipid decontamination: `L2_beta=0.1f0`, `L1_n_loops=5`
@@ -66,11 +67,11 @@ function reconstruct(info::Dict; datatype=ComplexF32, mmap=true, kw...)
 end
 
 # Returns [n_freq, n_phase, n_points, n_channels]
-function reconstruct(c::Circle; noise_matrix_cholesky=nothing, datatype=ComplexF32, ice=false, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true, kw...)
+function reconstruct(c::Circle; noise_matrix_cholesky=nothing, datatype=ComplexF32, ice=false, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true, gradient_delay_us=[0,0,0], kw...)
     kdata = read_data(c, datatype, noise_matrix_cholesky)
 
     if do_fov_shift
-        fov_shift!(kdata, c)
+        fov_shift!(kdata, c, gradient_delay_us)
     end
     if conj_in_beginning
         kdata = conj.(kdata)
@@ -87,7 +88,7 @@ function reconstruct(c::Circle; noise_matrix_cholesky=nothing, datatype=ComplexF
         end
     end
 
-    csi = fourier_transform(kdata, c)
+    csi = fourier_transform(kdata, c, gradient_delay_us)
 
     csi = reverse(csi; dims=1) # LR flip
 
