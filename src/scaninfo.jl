@@ -143,13 +143,11 @@ function Base.getindex(h::ScanHeaderVD, s::Symbol)
         h.dims[SEG] - 1 # -n/2 : n/2
     end
 end
+
+get_n_points_on_circle(c::Circle) = get_n_points_on_circle(c[:first_head], c[:oversampling_factor])
 get_n_points_on_circle(h::ScanHeaderVD, oversampling_factor) = round(Int, max(h.dims[IDC] - 1, h.ice_param[6]) * oversampling_factor)
 part_from_one(h::ScanHeaderVD, info) = h[:SEG] + info[:n_part] ÷ 2 + 1
-
-function get_dwelltime(c::Circle) # TODO test if it works for both sequences
-    n_traj_points = c.info[:oversampling_factor] * maximum(h.ice_param[6] for heads in c.headers for hs in heads for h in hs)
-    return c.info[:wipMemBlock_alFree_59] / c.info[:oversampling_factor] * n_traj_points# / c[:n_TI]
-end
+get_dwelltime(c::Circle) = c[:wipMemBlock_alFree_59] * get_n_points_on_circle(c) / c[:oversampling_factor]
 
 function fix_old_headers!(info)
     circle_order = vcat((1:c for c in info[:circles_per_part])...)
