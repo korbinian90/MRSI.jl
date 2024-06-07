@@ -40,7 +40,8 @@ function create_dict_from_twix(twix, type)
         :slice_normal => pos_as_vector(twix["MeasYaps"]["sSliceArray"]["asSlice"][1], "sNormal"),
         :in_plane_rotation => get(twix["MeasYaps"]["sSliceArray"]["asSlice"][1], "dInPlaneRot", 0), # defaults to 0 if dInPlaneRot is not present
         :larmor_frequency => twix["MeasYaps"]["sTXSPEC"]["asNucleusInfo"][1]["lFrequency"],
-        :dwelltime => twix["MeasYaps"]["sRXSPEC"]["alDwellTime"][1], # TODO: This might not be the currently used place
+        :wipMemBlock_alFree_59 => twix["MeasYaps"]["sWipMemBlock"]["alFree"][59],
+        :dwelltime => round(twix["MeasYaps"]["sRXSPEC"]["alDwellTime"][1] / 1e4) * 1e4, # TODO: This might not be the currently used place
         :n_fid => get_n_fid(twix, type),
         :vec_size => twix["MeasYaps"]["sSpecPara"]["lVectorSize"],
     )
@@ -108,6 +109,8 @@ function Base.getindex(c::Circle, s::Symbol)
     h = first(first(first(c.headers)))
     if haskey(c.info, s) # look in info
         c.info[s]
+    elseif s == :first_head
+        h
     elseif s == :n_TI
         length(c.headers) # for old dats, not possible in ICE
     elseif s == :part
@@ -118,6 +121,8 @@ function Base.getindex(c::Circle, s::Symbol)
         c[:TI]:c[:n_TI]:c[:n_fid]
     elseif s == :n_useful_adc_points
         (c[:n_fid] * c[:n_points_on_circle]) ÷ c[:n_TI]
+    elseif s == :dwelltime_new
+        get_dwelltime(c)
     else # look in ScanHeaderVD
         h[s]
     end
@@ -138,8 +143,11 @@ function Base.getindex(h::ScanHeaderVD, s::Symbol)
         h.dims[SEG] - 1 # -n/2 : n/2
     end
 end
+
+get_n_points_on_circle(c::Circle) = get_n_points_on_circle(c[:first_head], c[:oversampling_factor])
 get_n_points_on_circle(h::ScanHeaderVD, oversampling_factor) = round(Int, max(h.dims[IDC] - 1, h.ice_param[6]) * oversampling_factor)
 part_from_one(h::ScanHeaderVD, info) = h[:SEG] + info[:n_part] ÷ 2 + 1
+get_dwelltime(c::Circle) = c[:wipMemBlock_alFree_59] * get_n_points_on_circle(c) / c[:oversampling_factor]
 
 function fix_old_headers!(info)
     circle_order = vcat((1:c for c in info[:circles_per_part])...)
