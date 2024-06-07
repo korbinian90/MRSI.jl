@@ -41,7 +41,7 @@ function create_dict_from_twix(twix, type)
         :in_plane_rotation => get(twix["MeasYaps"]["sSliceArray"]["asSlice"][1], "dInPlaneRot", 0), # defaults to 0 if dInPlaneRot is not present
         :larmor_frequency => twix["MeasYaps"]["sTXSPEC"]["asNucleusInfo"][1]["lFrequency"],
         :wipMemBlock_alFree_59 => twix["MeasYaps"]["sWipMemBlock"]["alFree"][59],
-        :dwelltime_old => twix["MeasYaps"]["sRXSPEC"]["alDwellTime"][1], # TODO: This might not be the currently used place
+        :dwelltime => round(twix["MeasYaps"]["sRXSPEC"]["alDwellTime"][1] / 1e4) * 1e4, # TODO: This might not be the currently used place
         :n_fid => get_n_fid(twix, type),
         :vec_size => twix["MeasYaps"]["sSpecPara"]["lVectorSize"],
     )
@@ -121,7 +121,7 @@ function Base.getindex(c::Circle, s::Symbol)
         c[:TI]:c[:n_TI]:c[:n_fid]
     elseif s == :n_useful_adc_points
         (c[:n_fid] * c[:n_points_on_circle]) ÷ c[:n_TI]
-    elseif s == :dwelltime
+    elseif s == :dwelltime_new
         get_dwelltime(c)
     else # look in ScanHeaderVD
         h[s]
