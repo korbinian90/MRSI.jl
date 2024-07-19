@@ -24,7 +24,7 @@ function reconstruct(file::AbstractString; time_point=5, combine=:auto, do_noise
     scan_info = read_scan_info(file, old_headers)
 
     if do_noise_decorrelation
-        kw = Dict{Symbol, Any}(kw...) # required to modify kw
+        kw = Dict{Symbol,Any}(kw...) # required to modify kw
         kw[:noise_matrix_cholesky] = noise_decorrelation(scan_info)
     end
 
@@ -79,13 +79,8 @@ function reconstruct(c::Circle; noise_matrix_cholesky=nothing, datatype=ComplexF
     if do_freq_cor
         frequency_offset_correction!(kdata, c)
     end
-
     if do_dens_comp
-        if ice
-            density_compensation_ice!(kdata, c)
-        else
-            density_compensation!(kdata, c)
-        end
+        density_compensation!(kdata, c; ice)
     end
 
     csi = fourier_transform(kdata, c, gradient_delay_us)
