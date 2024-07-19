@@ -67,7 +67,7 @@ function reconstruct(info::Dict; datatype=ComplexF32, mmap=true, kw...)
 end
 
 # Returns [n_freq, n_phase, n_points, n_channels]
-function reconstruct(c::Circle; noise_matrix_cholesky=nothing, datatype=ComplexF32, ice=false, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true, gradient_delay_us=[0,0,0], kw...)
+function reconstruct(c::Circle; noise_matrix_cholesky=nothing, datatype=ComplexF32, ice=false, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, do_hamming_filter=true, conj_in_beginning=true, gradient_delay_us=[0, 0, 0], kw...)
     kdata = read_data(c, datatype, noise_matrix_cholesky)
 
     if do_fov_shift
@@ -80,7 +80,7 @@ function reconstruct(c::Circle; noise_matrix_cholesky=nothing, datatype=ComplexF
         frequency_offset_correction!(kdata, c)
     end
     if do_dens_comp
-        density_compensation!(kdata, c; ice)
+        density_compensation!(kdata, c; do_hamming_filter, ice)
     end
 
     csi = fourier_transform(kdata, c, gradient_delay_us)

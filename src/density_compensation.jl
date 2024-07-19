@@ -1,7 +1,11 @@
-function density_compensation!(data, info; ice=false)
+function density_compensation!(data, info; do_hamming_filter=true, ice=false)
     areas = calculate_effective_area_per_circle(get_radii(info; ice))
 
     dcf = areas[info[:circle]] * number_of_points_correction(info; ice)
+
+    if do_hamming_filter
+        dcf *= hamming_filter(radius_normalized(info))
+    end
 
     data .*= dcf
 end
@@ -25,6 +29,9 @@ end
 function points_on_circle_ratio(c::Circle)
     return c[:max_n_points_on_circle] ./ c[:n_points_on_circle]
 end
+
+# requires normalized radius
+hamming_filter(r) = 0.54 + 0.46 * cos(2π * r)
 
 function get_radii(info; ice=false)
     if ice
