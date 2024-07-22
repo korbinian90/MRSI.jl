@@ -1,5 +1,5 @@
-function coil_combine(data, refscan; time_point=5)
-    pt = max(1, min(time_point, size(refscan, 4))) # between 1 and length of time dimension
+function coil_combine(data, refscan; ref_point_for_combine=5)
+    pt = max(1, min(ref_point_for_combine, size(refscan, 4))) # between 1 and length of time dimension
     coil_weight = conj(refscan[:, :, :, [pt], :])
     combined = combine(data, coil_weight)
     return combined .* scaling(coil_weight)

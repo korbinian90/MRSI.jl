@@ -1,13 +1,13 @@
 """
-    csi = reconstruct(filename; combine=:auto, datatype=ComplexF32, ice=false, old_headers=false, mmap=true, lipid_decon=false, lipid_mask, brain_mask, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true, do_hamming_filter=true, do_hamming_filter_z=true, gradient_delay_us=[0,0,0])
+    csi = reconstruct(filename; datatype=ComplexF32, mmap=true, combine=true, ref_point_for_combine=5, do_noise_decorrelation=true, zero_fill=false, lipid_decon=nothing, old_headers=false, do_hamming_filter_z=true, noise_matrix_cholesky=nothing, ice=false, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, do_hamming_filter=true, conj_in_beginning=true, gradient_delay_us=[0, 0, 0])
 
 Reconstructs a SIEMENS dat file
 
-Coil combine is performed automatically for AC datasets. 
-Set `combine` to `false`|`true` to force coil combination (including normalization by the patrefscan). 
-Set `ice` to `true` to use calculated radii for density compensation instead of reading them from the headers. 
-Set `old_headers` to `true` for older dat files with part and circle stored in LIN
 Set `mmap` to `false` to compute in RAM or a filename or folder for storing the temporary result array.
+Coil combine is performed automatically for AC datasets.
+Set `combine` to `false`|`true` to force coil combination (including normalization by the patrefscan).
+Set `ice` to `true` to use calculated radii for density compensation instead of reading them from the headers.
+Set `old_headers` to `true` for older dat files with part and circle stored in LIN
 Set `lipid_decon` to `:L1` or `:L2` to perform lipid decontamination.
 Set `gradient_delay` to [[x1,y1], [x2,y2], [x3,y3]] to apply a gradient delay correction
 For lipid decontamination, pass the filenames of Float32 raw files via `lipid_mask` and `brain_mask`.
@@ -20,19 +20,20 @@ Reconstruction without coil combination.
 `type` can be `:ONLINE` or `:PATREFSCAN`
 `info` is a `Dict` containing scan information.
 """
-function reconstruct(file::AbstractString; time_point=5, combine=:auto, do_noise_decorrelation=false, zero_fill=false, lipid_decon=nothing, old_headers=false, do_hamming_filter_z=true, kw...)
+function reconstruct(file::AbstractString; combine=true, ref_point_for_combine=5, do_noise_decorrelation=true, zero_fill=false, lipid_decon=nothing, old_headers=false, do_hamming_filter_z=true, kw...)
+    kw = Dict{Symbol,Any}(kw...) # required to modify kw
+
     scan_info = read_scan_info(file, old_headers)
 
-    if do_noise_decorrelation
-        kw = Dict{Symbol,Any}(kw...) # required to modify kw
+    if do_noise_decorrelation        
         kw[:noise_matrix_cholesky] = noise_decorrelation(scan_info)
     end
 
     csi = reconstruct(scan_info[:ONLINE]; kw...)
 
-    if combine == true || combine == :auto && size(csi, 5) > 1
+    if combine == true
         refscan = reconstruct(scan_info[:PATREFSCAN]; kw...)
-        csi = coil_combine(csi, refscan; time_point)
+        csi = coil_combine(csi, refscan; ref_point_for_combine)
     end
 
     if do_hamming_filter_z && size(csi, 3) > 1
@@ -45,8 +46,8 @@ function reconstruct(file::AbstractString; time_point=5, combine=:auto, do_noise
     end
 
     if zero_fill
-        vec_size = scan_info[:ONLINE][:vec_size]
-        csi = PaddedView(0, csi, (size(csi)[1:3]..., vec_size, size(csi, 5)))
+        filled_size = (size(csi)[1:3]..., scan_info[:ONLINE][:vec_size], size(csi, 5))
+        csi = PaddedView(0, csi, filled_size)
     end
 
     return csi
@@ -59,8 +60,10 @@ function reconstruct(info::Dict; datatype=ComplexF32, mmap=true, kw...)
     p = Progress(sum(length.(circle_array))) # Progress bar
     for part in circle_array
         for circle in part
+
             rec = reconstruct(circle; datatype, kw...)
             selectdim(csi, 3, circle[:part]) .+= rec
+
             next!(p) # Progress bar
         end
     end
@@ -71,7 +74,7 @@ function reconstruct(info::Dict; datatype=ComplexF32, mmap=true, kw...)
 end
 
 # Returns [n_freq, n_phase, n_points, n_channels]
-function reconstruct(c::Circle; noise_matrix_cholesky=nothing, datatype=ComplexF32, ice=false, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, do_hamming_filter=true, conj_in_beginning=true, gradient_delay_us=[0, 0, 0], kw...)
+function reconstruct(c::Circle; datatype=ComplexF32, noise_matrix_cholesky=nothing, ice=false, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, do_hamming_filter=true, conj_in_beginning=true, gradient_delay_us=[0, 0, 0], kw...)
     kdata = read_data(c, datatype, noise_matrix_cholesky)
 
     if do_fov_shift
