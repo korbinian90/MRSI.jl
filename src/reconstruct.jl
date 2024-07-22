@@ -36,7 +36,7 @@ function reconstruct(file::AbstractString; combine=true, ref_point_for_combine=5
         csi = coil_combine(csi, refscan; ref_point_for_combine)
     end
 
-    if do_hamming_filter_z && size(csi, 3) > 1
+    if do_hamming_filter_z && size(csi, 3) > 1 && (!haskey(kw, :ice) || !kw[:ice])
         csi = hamming_filter_z(csi)
     end
 
@@ -53,7 +53,7 @@ function reconstruct(file::AbstractString; combine=true, ref_point_for_combine=5
     return csi
 end
 
-function reconstruct(info::Dict; datatype=ComplexF32, mmap=true, kw...)
+function reconstruct(info::Dict; datatype=ComplexF32, mmap=true, do_hamming_filter_z=false, kw...)
     csi = mmaped_image(info, datatype, mmap)
     circle_array = sort_into_circles(info[:headers], info)
 
@@ -66,6 +66,10 @@ function reconstruct(info::Dict; datatype=ComplexF32, mmap=true, kw...)
 
             next!(p) # Progress bar
         end
+    end
+
+    if do_hamming_filter_z && size(csi, 3) > 1 && haskey(kw, :ice) && kw[:ice]
+        csi .*= hamming_filter_kernel_z(size(csi, 3))
     end
 
     fft_slice_dim!(csi)
