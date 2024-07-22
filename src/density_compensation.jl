@@ -30,9 +30,6 @@ function points_on_circle_ratio(c::Circle)
     return c[:max_n_points_on_circle] ./ c[:n_points_on_circle]
 end
 
-# requires normalized radius
-hamming_filter(r) = 0.54 + 0.46 * cos(2π * r)
-
 function get_radii(info; ice=false)
     if ice
         collect(range(1; step=2, length=info[:max_n_circles]))

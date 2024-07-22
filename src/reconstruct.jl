@@ -1,5 +1,5 @@
 """
-    csi = reconstruct(filename; combine=:auto, datatype=ComplexF32, ice=false, old_headers=false, mmap=true, lipid_decon=false, lipid_mask, brain_mask, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true, gradient_delay_us=[0,0,0])
+    csi = reconstruct(filename; combine=:auto, datatype=ComplexF32, ice=false, old_headers=false, mmap=true, lipid_decon=false, lipid_mask, brain_mask, do_fov_shift=true, do_freq_cor=true, do_dens_comp=true, conj_in_beginning=true, do_hamming_filter=true, do_hamming_filter_z=true, gradient_delay_us=[0,0,0])
 
 Reconstructs a SIEMENS dat file
 
@@ -20,7 +20,7 @@ Reconstruction without coil combination.
 `type` can be `:ONLINE` or `:PATREFSCAN`
 `info` is a `Dict` containing scan information.
 """
-function reconstruct(file::AbstractString; time_point=5, combine=:auto, do_noise_decorrelation=false, zero_fill=false, lipid_decon=nothing, old_headers=false, kw...)
+function reconstruct(file::AbstractString; time_point=5, combine=:auto, do_noise_decorrelation=false, zero_fill=false, lipid_decon=nothing, old_headers=false, do_hamming_filter_z=true, kw...)
     scan_info = read_scan_info(file, old_headers)
 
     if do_noise_decorrelation
@@ -33,6 +33,10 @@ function reconstruct(file::AbstractString; time_point=5, combine=:auto, do_noise
     if combine == true || combine == :auto && size(csi, 5) > 1
         refscan = reconstruct(scan_info[:PATREFSCAN]; kw...)
         csi = coil_combine(csi, refscan; time_point)
+    end
+
+    if do_hamming_filter_z && size(csi, 3) > 1
+        csi = hamming_filter_z(csi)
     end
 
     if !isnothing(lipid_decon)

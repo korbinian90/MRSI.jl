@@ -42,3 +42,4 @@ function fft_slice_dim!(image::AbstractArray{T,5}) where {T}
     end
 end
 fft_slice_dim(image; dims=3) = fftshift(fft(ifftshift(image, dims), dims), dims)
+ifft_slice_dim(image; dims=3) = fftshift(ifft(ifftshift(image, dims), dims), dims)
