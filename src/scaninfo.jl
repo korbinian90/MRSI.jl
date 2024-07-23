@@ -15,7 +15,7 @@ function read_scan_info(filename, old_headers=false)
         info[:headers] = headers[type]
         info[:filename] = filename
         
-        if old_headers
+        if old_headers && type != :NOISADJSCAN
             fix_old_headers!(info)
         end
 

@@ -25,8 +25,12 @@ function reconstruct(file::AbstractString; combine=true, ref_point_for_combine=5
 
     scan_info = read_scan_info(file, old_headers)
 
-    if do_noise_decorrelation        
-        kw[:noise_matrix_cholesky] = noise_decorrelation(scan_info)
+    if do_noise_decorrelation
+        if old_headers
+            @warn "noise decorrelation currently not working with old headers"
+        else
+            kw[:noise_matrix_cholesky] = noise_decorrelation(scan_info)
+        end
     end
 
     csi = reconstruct(scan_info[:ONLINE]; kw...)
