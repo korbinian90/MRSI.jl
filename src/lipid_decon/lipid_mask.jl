@@ -1,11 +1,14 @@
-# Idea to improve: take maximum instead of sum for fat
-function lipid_mask_from_mrsi(data, info; fat_range_ppm=[1.8, 0.5], threshold=0.1)
+function lipid_mask_from_mrsi(data, info; fat_range_ppm=[1.8, 0.5], threshold=0.2)
     dims = 4
-    spectrum = reverse(fftshift(fft(data, dims), dims))
+    spectrum = abs.(fftshift(fft(data, dims), dims))
     fat_range = ppm_to_vecsize_point.(Ref(info), fat_range_ppm)
-    fat = sum(abs.(selectdim(spectrum, dims, fat_range[1]:fat_range[2])); dims)
-    all = sum(abs.(spectrum); dims)
-    return (fat ./ all) .> threshold
+    fat = maximum(selectdim(spectrum, dims, fat_range[1]:fat_range[2]); dims)
+    all = maximum(spectrum; dims)
+    ratio = fat ./ all
+    ratio = dropdims(ratio; dims=4)
+    cut_to_ellipse!(ratio)
+    mask = ratio .> threshold
+    return mask
 end
 
 # Problem: requires brain mask
@@ -56,11 +59,15 @@ end
 
 function get_masks(csi, info; brain_mask=nothing, lipid_mask=nothing, kw...)
     sz = size(csi)[1:3]
-    brain = read_raw(brain_mask, sz) .!= 0
-    lipid = if lipid_mask == :from_spectrum
-        lipid_mask_from_mrsi(csi, info)
+    brain = if ispath(brain_mask)
+        read_raw(brain_mask, sz) .!= 0        
     else
+        watermask(info[:filename])
+    end
+    lipid = if ispath(lipid_mask)
         read_raw(lipid_mask, sz) .!= 0
+    else
+        lipid_mask_from_mrsi(csi, info)
     end
     return brain, lipid
 end
