@@ -1,6 +1,6 @@
 module MRSI
 
-using FFTW, Mmap, Rotations, LinearAlgebra, PaddedViews, ProgressMeter, Memoization
+using FFTW, Mmap, Rotations, LinearAlgebra, PaddedViews, ProgressMeter, Memoization, ImageFiltering
 
 include("headers.jl")
 include("scaninfo.jl")
@@ -18,9 +18,11 @@ include("coil_combination.jl")
 include("noise_decorrelation.jl")
 include("mmap.jl")
 include("reconstruct.jl")
+include("lipid_decon/lipid_suppression.jl")
 include("lipid_decon/lipid_suppression_L2.jl")
 include("lipid_decon/lipid_suppression_L1.jl")
 include("lipid_decon/lipid_mask.jl")
+include("masking.jl")
 
 export reconstruct,
     read_scan_info,

@@ -5,7 +5,7 @@ function lipid_mask_from_mrsi(data, info; fat_range_ppm=[1.8, 0.5], threshold=0.
     fat = maximum(selectdim(spectrum, dims, fat_range[1]:fat_range[2]); dims)
     all = maximum(spectrum; dims)
     ratio = fat ./ all
-    ratio = dropdims(ratio; dims=4)
+    ratio = dropdims(ratio; dims)
     cut_to_ellipse!(ratio)
     mask = ratio .> threshold
     return mask

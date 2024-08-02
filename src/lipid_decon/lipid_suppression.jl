@@ -1,15 +1,17 @@
-function lipid_suppression!(csi::AbstractArray{T,4}, mask; type=:L2, L2_beta=0.1f0, L1_n_loops=5, args...)
-    lipid_mask = lipid_mask_from_mrsi_pipeline(csi, info; fat_range_ppm=[1.8, 0.5], threshold=0.1)
-    scale = 1.1047e+09/norm(csi(:))
+function lipid_suppression!(csi::AbstractArray{T,4}, mask, info; type=:L2, L2_beta=0.1f0, L1_n_loops=5, args...) where T
+    lipid_mask = lipid_mask_from_mrsi(csi, info; fat_range_ppm=[1.8, 0.5], threshold=0.2)
+    scale = 1.1047e+09/norm(csi)
     for slice in axes(csi, 3)
         csi_slice = csi[:,:,slice,:] * scale
         csi[:, :, slice, :] = lipid_suppression_slice(csi_slice, mask[:, :, slice], lipid_mask[:, :, slice], type, L2_beta, L1_n_loops, args...) / scale
     end
+    return lipid_mask
 end
 
-function lipid_suppression!(csi::AbstractArray{T,5}, mask; args...) where T
+function lipid_suppression!(csi::AbstractArray{T,5}, brain_mask, info; args...) where T
     for channel in axes(csi, 5)
-        csi[:, :, :, :, channel] = lipid_suppression!(csi[:, :, :, :, channel], mask; args...)
+        lipid_mask = lipid_suppression!(selectdim(csi, 5, channel), brain_mask, info; args...)
+        args[:save](lipid_mask, "lipid_mask_$channel.nii", "/home/korbi/data/MRSI/fireICE_invivo1_1/lipid_mask_channelwise_in_run/")
     end
 end
 
@@ -17,9 +19,9 @@ function lipid_suppression_slice(csi, mask, lipid_mask, type, L2_beta, L1_n_loop
     fft_dim = 3 # spectrum
     csi = fftshift(fft(csi, fft_dim), fft_dim)
 
-    lipid_basis = generate_lipid_basis(csi, lipid_mask) # Q: kann man hier auch gleich lipid basis definieren, anstatt die lipid_basis aus der lipid_mask zu generieren? Die lipid_mask wird ja dann auch aus dem Spektrum generiert
+    lipid_basis = generate_lipid_basis(csi, lipid_mask)
     if type == :L2
-        csi = lipid_decontamination_L2(csi, lipid_basis, mask, L2_beta) # brain_mask looks unimportant (only for efficiency?)
+        csi = lipid_decontamination_L2(csi, lipid_basis, mask, L2_beta)
     elseif type == :L1
         csi = lipid_decontamination_L1(csi, lipid_basis, mask, L1_n_loops; args...)
     end

@@ -34,19 +34,19 @@ function reconstruct(file::AbstractString; combine=true, ref_point_for_combine=5
     end
 
     csi = reconstruct(scan_info[:ONLINE]; kw...)
+    refscan = reconstruct(scan_info[:PATREFSCAN]; kw...)
+
+    if !isnothing(lipid_decon)
+        brain_mask = brain_mask_from_csi(csi, refscan, scan_info[:ONLINE])
+        lipid_suppression!(csi, brain_mask, scan_info[:ONLINE]; type=lipid_decon, kw...)
+    end
 
     if combine == true
-        refscan = reconstruct(scan_info[:PATREFSCAN]; kw...)
         csi = coil_combine(csi, refscan; ref_point_for_combine)
     end
 
     if do_hamming_filter_z && size(csi, 3) > 1 && (!haskey(kw, :ice) || !kw[:ice])
         csi = hamming_filter_z(csi)
-    end
-
-    if !isnothing(lipid_decon)
-        mask, lipid_mask = get_masks(csi, scan_info[:ONLINE]; kw...)
-        lipid_suppression!(csi, mask, lipid_mask; type=lipid_decon, kw...)
     end
 
     if zero_fill
