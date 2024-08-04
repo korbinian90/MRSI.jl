@@ -3,7 +3,7 @@ using Statistics, ImageFiltering
 function brain_mask_from_csi(csi, water, info)
     lipid_mask = lipid_mask_from_mrsi(csi, info)
     water_mask = intensity_mask(water)
-    combined_mask = water_mask .& .!lipid_mask
+    combined_mask = (water_mask .& .!lipid_mask)
     smoothed_mask = imfilter(combined_mask, Kernel.gaussian((3, 3, 3))) .> 0.5
     return lipid_mask, water_mask, combined_mask, smoothed_mask
 end
@@ -29,11 +29,11 @@ function mask_mrsi(weight::AbstractArray; factor=1, threshold=nothing)
     # remove small holes
     mask = imfilter(mask, Kernel.gaussian((1.5, 1.5, 1.5))) .> 0.5
 
-    return mask
+    return mask[:,:,:]
 end
 
 function determine_threshold(weight)
-    w = weight[isfinite.(weight) .& weight .> 0]
+    w = weight[isfinite.(weight) .& (weight .> 0)]
     q05, q15, q80, q99 = quantile.(Ref(w), (0.05, 0.15, 0.8, 0.99))
     high_intensity = mean(w[q80.<=w.<=q99])
     noise = mean(w[w.<=q15])

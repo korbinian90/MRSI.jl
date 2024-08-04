@@ -1,17 +1,19 @@
-function lipid_suppression!(csi::AbstractArray{T,4}, mask, info; type=:L2, L2_beta=0.1f0, L1_n_loops=5, args...) where T
-    lipid_mask = lipid_mask_from_mrsi(csi, info; fat_range_ppm=[1.8, 0.5], threshold=0.2)
+function lipid_suppression!(csi::AbstractArray{T,4}, mask, info; type=:L2, L2_beta=0.1f0, L1_n_loops=5, save=nothing, channel=nothing, args...) where T
+    lipid_mask = lipid_mask_per_channel_simple(csi, info; fat_range_ppm=[1.8, 0.5])
+    if !isnothing(save)
+        save[1](lipid_mask, "lipid_mask_$channel.nii", save[2])
+    end
     scale = 1.1047e+09/norm(csi)
     for slice in axes(csi, 3)
         csi_slice = csi[:,:,slice,:] * scale
         csi[:, :, slice, :] = lipid_suppression_slice(csi_slice, mask[:, :, slice], lipid_mask[:, :, slice], type, L2_beta, L1_n_loops, args...) / scale
     end
-    return lipid_mask
 end
 
 function lipid_suppression!(csi::AbstractArray{T,5}, brain_mask, info; args...) where T
     for channel in axes(csi, 5)
-        lipid_mask = lipid_suppression!(selectdim(csi, 5, channel), brain_mask, info; args...)
-        args[:save](lipid_mask, "lipid_mask_$channel.nii", "/home/korbi/data/MRSI/fireICE_invivo1_1/lipid_mask_channelwise_in_run/")
+        @show "decontaminating channel $channel"
+        @time lipid_suppression!(selectdim(csi, 5, channel), brain_mask, info; channel, args...)
     end
 end
 

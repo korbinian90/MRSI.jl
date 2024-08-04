@@ -1,14 +1,30 @@
 function lipid_mask_from_mrsi(data, info; fat_range_ppm=[1.8, 0.5], threshold=0.2)
+    lipid, all = calculate_spectrum_max_values(data, info; fat_range_ppm)
+    ratio = lipid ./ all    
+    cut_to_ellipse!(ratio)
+    mask = ratio .> threshold
+    return mask[:,:,:]
+end
+
+function lipid_mask_per_channel_simple(csi, info; fat_range_ppm=[1.8, 0.5])
+    lipid, all = calculate_spectrum_max_values(csi, info; fat_range_ppm)
+
+    lipid_mask1 = (lipid ./ all) .> 0.9
+    lipid_mask2 = lipid .> (0.8 * mean(lipid[lipid_mask1]))
+    combined_mask = lipid_mask1 .& lipid_mask2
+
+    return combined_mask
+end
+
+function calculate_spectrum_max_values(data, info; fat_range_ppm=[1.8, 0.5])
     dims = 4
     spectrum = abs.(fftshift(fft(data, dims), dims))
     fat_range = ppm_to_vecsize_point.(Ref(info), fat_range_ppm)
-    fat = maximum(selectdim(spectrum, dims, fat_range[1]:fat_range[2]); dims)
+    lipid = maximum(selectdim(spectrum, dims, fat_range[1]:fat_range[2]); dims)
+    lipid = dropdims(lipid; dims)
     all = maximum(spectrum; dims)
-    ratio = fat ./ all
-    ratio = dropdims(ratio; dims)
-    cut_to_ellipse!(ratio)
-    mask = ratio .> threshold
-    return mask
+    all = dropdims(all; dims)
+    return lipid, all
 end
 
 # Problem: requires brain mask
